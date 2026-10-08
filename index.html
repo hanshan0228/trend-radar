@@ -66,10 +66,24 @@
 
     <!-- 控制面板 -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6 shadow-xl">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+      <!-- 快捷模式选择 -->
+      <div class="flex items-center space-x-2 mb-4 pb-3 border-b border-slate-800 text-xs">
+        <span class="text-slate-400 font-semibold mr-1">🎯 探测模式:</span>
+        <button onclick="applyPreset('viral')" class="px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 font-bold transition flex items-center gap-1.5">
+          <span>🔥</span> 24h爆款破千 (Viral ≥1000赞)
+        </button>
+        <button onclick="applyPreset('launch')" class="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 font-medium transition flex items-center gap-1.5">
+          <span>🚀</span> 新上线发布 (Just Launched)
+        </button>
+        <button onclick="applyPreset('custom')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition flex items-center gap-1.5">
+          <span>⚙️</span> 自定义参数
+        </button>
+      </div>
 
-        <!-- 渠道选择 -->
-        <div class="md:col-span-2 space-y-2">
+      <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
+
+        <!-- 渠道选择 (占据 3 列) -->
+        <div class="md:col-span-3 space-y-2">
           <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">监控数据渠道 (支持多选)</label>
           <div class="flex flex-wrap gap-2 text-xs">
             <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition has-[:checked]:border-sky-500 has-[:checked]:bg-sky-500/10 has-[:checked]:text-sky-400">
@@ -91,20 +105,54 @@
           </div>
         </div>
 
-        <!-- 域名年限过滤 -->
+        <!-- 时间跨度 -->
         <div class="space-y-2">
-          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">域名注册年龄筛选</label>
-          <select id="sel-age" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
-            <option value="999999">全部年限 (不过滤)</option>
-            <option value="30" selected>🔥 仅显示 ≤ 30 天超新米 (极高潜力)</option>
-            <option value="90">🌱 仅显示 ≤ 90 天早期项目</option>
-            <option value="365">🌿 仅显示 ≤ 1 年内新站</option>
+          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">⏱️ 时间跨度</label>
+          <select id="sel-time" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <option value="1d" selected>近 24 小时 (24h)</option>
+            <option value="3d">近 3 天 (3d)</option>
+            <option value="7d">近 7 天 (7d)</option>
           </select>
         </div>
 
-        <!-- 操作按钮组 -->
-        <div class="flex items-center space-x-2 pt-5">
-          <button id="btn-scan" onclick="triggerScan()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs transition flex items-center justify-center space-x-1.5 shadow-lg shadow-emerald-500/20 active:scale-95">
+        <!-- 点赞/热度门槛 -->
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">🔥 互动门槛 (赞/分)</label>
+          <select id="sel-faves" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-rose-500">
+            <option value="1000">🔥 破千爆款 (≥1,000赞)</option>
+            <option value="100">⚡ 热门精选 (≥100赞)</option>
+            <option value="10">🌱 早期潜力 (≥10赞)</option>
+            <option value="0" selected>⚪ 不设限制 (全部)</option>
+          </select>
+        </div>
+
+        <!-- 域名年限 -->
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">🌱 域名注册年龄</label>
+          <select id="sel-age" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <option value="999999">全部年限 (不过滤)</option>
+            <option value="30" selected>🔥 仅显示 ≤30天超新米</option>
+            <option value="90">🌱 仅显示 ≤90天早期项目</option>
+            <option value="365">🌿 仅显示 ≤1年内新站</option>
+          </select>
+        </div>
+
+      </div>
+
+      <!-- 第二行：自定义关键词与操作按钮 -->
+      <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-center mt-4 pt-4 border-t border-slate-800/80">
+        <!-- 自定义主题词 -->
+        <div class="md:col-span-4 relative">
+          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">自定义主题或关键词 (留空则执行全局雷达)</label>
+          <div class="relative">
+            <input type="text" id="custom-query" placeholder="选填: 如 AI agent / chrome extension / notion / saas (留空自动扫描最新爆款)..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 placeholder-slate-600">
+            <span class="absolute right-3 top-2.5 text-xs text-slate-500 font-mono">必带外链 filter:links 强制开启</span>
+          </div>
+        </div>
+
+        <!-- 操作按钮组 (占据 2 列) -->
+        <div class="md:col-span-2 flex items-center space-x-2 pt-5">
+          <button id="btn-scan" onclick="triggerScan()" class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs transition flex items-center justify-center space-x-1.5 shadow-lg shadow-emerald-500/20 active:scale-95">
             <span id="scan-icon">⚡</span>
             <span id="scan-text">全网扫描 (Scan Now)</span>
           </button>
@@ -113,13 +161,12 @@
             <span id="patrol-text">自动巡逻</span>
           </button>
         </div>
-
       </div>
 
-      <!-- 即时关键词过滤栏与数据概览 -->
+      <!-- 即时卡片搜索栏与数据概览 -->
       <div class="mt-4 pt-4 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
         <div class="w-full md:w-80 relative">
-          <input type="text" id="filter-input" oninput="filterCards()" placeholder="输入关键词实时筛选卡片..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 pl-8 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 placeholder-slate-600">
+          <input type="text" id="filter-input" oninput="filterCards()" placeholder="输入项目名或域名即时筛选..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 pl-8 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 placeholder-slate-600">
           <span class="absolute left-2.5 top-2 text-slate-500">🔎</span>
         </div>
 
@@ -160,6 +207,25 @@
     let patrolTimer = null;
     let cachedItems = [];
 
+    function applyPreset(mode) {
+      const selTime = document.getElementById('sel-time');
+      const selFaves = document.getElementById('sel-faves');
+      const customQuery = document.getElementById('custom-query');
+
+      if (mode === 'viral') {
+        selTime.value = '1d';
+        selFaves.value = '1000';
+        customQuery.value = '';
+      } else if (mode === 'launch') {
+        selTime.value = '3d';
+        selFaves.value = '0';
+        customQuery.value = '';
+      } else if (mode === 'custom') {
+        customQuery.focus();
+      }
+      triggerScan();
+    }
+
     async function triggerScan() {
       if (isScanning) return;
       isScanning = true;
@@ -172,7 +238,7 @@
 
       scanBtn.disabled = true;
       scanIcon.innerHTML = '⏳';
-      scanText.innerText = '正在扫描...';
+      scanText.innerText = '正在全网穿透...';
       loadingState.classList.remove('hidden');
       emptyState.classList.add('hidden');
 
@@ -184,9 +250,12 @@
       if (document.getElementById('chk-ph').checked) channels.push('producthunt');
 
       const maxAge = document.getElementById('sel-age').value;
+      const timeRange = document.getElementById('sel-time').value;
+      const minFaves = document.getElementById('sel-faves').value;
+      const query = document.getElementById('custom-query').value.trim();
 
       try {
-        const queryUrl = `/api/scan?channels=${channels.join(',')}&max_age=${maxAge}`;
+        const queryUrl = `/api/scan?channels=${channels.join(',')}&max_age=${maxAge}&time_range=${timeRange}&min_faves=${minFaves}&query=${encodeURIComponent(query)}`;
         const resp = await fetch(queryUrl);
         const data = await resp.json();
         cachedItems = data.items || [];
@@ -259,10 +328,13 @@
             <span class="text-slate-500 font-mono">${item.pub_date ? item.pub_date.substring(0, 16) : '近期'}</span>
 
             <div class="flex items-center space-x-1.5 font-sans">
+              <a href="https://x.com/search?q=${encodeURIComponent(item.domain + ' min_faves:10')}&f=live" target="_blank" class="hover:text-sky-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="去 X 验证高赞讨论与点赞数">
+                🐦 X热度
+              </a>
               <a href="https://trends.google.com/trends/explore?q=${encodeURIComponent(item.domain.split('.')[0])}" target="_blank" class="hover:text-emerald-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="去 Google Trends 查搜量走势">
                 📈 趋势
               </a>
-              <a href="https://www.google.com/search?q=${encodeURIComponent('site:' + item.domain)}" target="_blank" class="hover:text-sky-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查 Google 收录与 SERP">
+              <a href="https://www.google.com/search?q=${encodeURIComponent('site:' + item.domain)}" target="_blank" class="hover:text-teal-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查 Google 收录与 SERP">
                 🔎 收录
               </a>
               <a href="${item.source_url}" target="_blank" class="hover:text-orange-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查看原始推文/帖子">
@@ -366,10 +438,13 @@
             <span class="text-slate-500 font-mono">${item.pub_date ? item.pub_date.substring(0, 16) : '近期'}</span>
 
             <div class="flex items-center space-x-1.5 font-sans">
+              <a href="https://x.com/search?q=${encodeURIComponent(item.domain + ' min_faves:10')}&f=live" target="_blank" class="hover:text-sky-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="去 X 验证高赞讨论与点赞数">
+                🐦 X热度
+              </a>
               <a href="https://trends.google.com/trends/explore?q=${encodeURIComponent(item.domain.split('.')[0])}" target="_blank" class="hover:text-emerald-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="去 Google Trends 查搜量走势">
                 📈 趋势
               </a>
-              <a href="https://www.google.com/search?q=${encodeURIComponent('site:' + item.domain)}" target="_blank" class="hover:text-sky-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查 Google 收录与 SERP">
+              <a href="https://www.google.com/search?q=${encodeURIComponent('site:' + item.domain)}" target="_blank" class="hover:text-teal-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查 Google 收录与 SERP">
                 🔎 收录
               </a>
               <a href="${item.source_url}" target="_blank" class="hover:text-orange-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查看原始推文/帖子">

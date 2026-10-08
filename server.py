@@ -124,9 +124,20 @@ def fetch_rss_feed(query):
         print(f"Error fetching RSS for query [{query}]:", e)
     return items
 
-def scan_twitter():
-    """渠道 1: 扫描 X/Twitter 上的新上线推文"""
-    query = 'site:x.com ("just launched" OR "introducing" OR "built this tool") when:3d'
+def scan_twitter(time_range="1d", min_faves=0, custom_query=""):
+    """渠道 1: 扫描 X/Twitter (支持时间跨度、高赞爆款模式与自定义词)"""
+    time_filter = f"when:{time_range}" if time_range else "when:1d"
+
+    if custom_query:
+        query_core = custom_query
+    elif min_faves >= 1000:
+        query_core = '("1k likes" OR "1000 likes" OR "viral" OR "trending") "http"'
+    elif min_faves >= 100:
+        query_core = '("just launched" OR "introducing" OR "built this" OR "top tools") "http"'
+    else:
+        query_core = '("just launched" OR "introducing" OR "built this tool")'
+
+    query = f'site:x.com {query_core} {time_filter}'
     raw_items = fetch_rss_feed(query)
     results = []
     for item in raw_items:
@@ -160,13 +171,26 @@ def scan_twitter():
                 "domain": target_domain,
                 "url": target_url,
                 "source_url": item["link"],
-                "pub_date": item["pubDate"]
+                "pub_date": item["pubDate"],
+                "min_faves": min_faves
             })
     return results
 
-def scan_hackernews():
-    """渠道 2: 扫描 Hacker News (Show HN 官方免API Key接口)"""
-    url = "https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&hitsPerPage=25"
+def scan_hackernews(time_range="1d", min_faves=0, custom_query=""):
+    """渠道 2: 扫描 Hacker News (支持点赞积分阈值与24h时间窗口)"""
+    # 计算时间戳
+    hours = 24 if time_range == "1d" else (72 if time_range == "3d" else 168)
+    cutoff_ts = int(datetime.now(timezone.utc).timestamp()) - (hours * 3600)
+
+    # 构造数字过滤器
+    filters = [f"created_at_i>{cutoff_ts}"]
+    if min_faves > 0:
+        filters.append(f"points>={min_faves}")
+
+    num_filter_str = ",".join(filters)
+    query_param = f"&query={urllib.parse.quote(custom_query)}" if custom_query else ""
+    url = f"https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&numericFilters={num_filter_str}&hitsPerPage=25{query_param}"
+
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     results = []
     try:
@@ -176,27 +200,30 @@ def scan_hackernews():
                 external_url = hit.get("url")
                 domain = extract_domain(external_url)
                 if domain:
+                    pts = hit.get("points", 0)
                     results.append({
                         "channel": "Show HN",
                         "badge_color": "bg-orange-500",
-                        "title": hit.get("title", ""),
+                        "title": f"[{pts} pts] {hit.get('title', '')}",
                         "domain": domain,
                         "url": external_url,
                         "source_url": f"https://news.ycombinator.com/item?id={hit.get('objectID')}",
-                        "pub_date": hit.get("created_at", "")[:10]
+                        "pub_date": hit.get("created_at", "")[:10],
+                        "points": pts
                     })
     except Exception as e:
         print("Error fetching HN:", e)
     return results
 
-def scan_reddit():
-    """渠道 3: 扫描 Reddit 独立开发区 (r/SideProject)"""
-    query = 'site:reddit.com/r/SideProject ("launched" OR "built this" OR "showcase") when:7d'
+def scan_reddit(time_range="1d", min_faves=0, custom_query=""):
+    """渠道 3: 扫描 Reddit (支持时间与爆款筛选)"""
+    time_filter = f"when:{time_range}" if time_range else "when:1d"
+    sub_q = custom_query if custom_query else '("launched" OR "built this" OR "showcase" OR "upvotes")'
+    query = f'site:reddit.com/r/SideProject {sub_q} {time_filter}'
     raw_items = fetch_rss_feed(query)
     results = []
     for item in raw_items:
         title = item["title"].replace(" - Reddit", "")
-        # 尝试从标题识别域名
         domain_matches = re.findall(r'\b[a-zA-Z0-9-]+\.(?:com|io|ai|co|app|dev|sh|tools)\b', item["title"])
         target_domain = None
         for dm in domain_matches:
@@ -216,17 +243,17 @@ def scan_reddit():
             })
     return results
 
-def scan_producthunt():
-    """渠道 4: 扫描 Product Hunt 当日新发布产品"""
-    query = 'site:producthunt.com/posts when:3d'
+def scan_producthunt(time_range="1d", min_faves=0, custom_query=""):
+    """渠道 4: 扫描 Product Hunt"""
+    time_filter = f"when:{time_range}" if time_range else "when:1d"
+    sub_q = custom_query if custom_query else "posts"
+    query = f'site:producthunt.com/{sub_q} {time_filter}'
     raw_items = fetch_rss_feed(query)
     results = []
     for item in raw_items:
         title = item["title"].replace(" - Product Hunt", "")
-        # 提取 PH 里的产品代号
         parts = title.split(" - ")
         prod_name = parts[0].strip() if parts else title
-        # 构造推测域名或直接指向详情
         results.append({
             "channel": "Product Hunt",
             "badge_color": "bg-amber-600",
@@ -263,18 +290,21 @@ class RadarRequestHandler(http.server.SimpleHTTPRequestHandler):
             params = urllib.parse.parse_qs(parsed.query)
             channels = params.get("channels", ["twitter,hn,reddit,producthunt"])[0].split(",")
             max_age = int(params.get("max_age", [999999])[0])
+            time_range = params.get("time_range", ["1d"])[0]
+            min_faves = int(params.get("min_faves", [0])[0])
+            custom_query = params.get("query", [""])[0]
 
             all_items = []
             with ThreadPoolExecutor(max_workers=4) as executor:
                 futures = {}
                 if "twitter" in channels:
-                    futures["twitter"] = executor.submit(scan_twitter)
+                    futures["twitter"] = executor.submit(scan_twitter, time_range, min_faves, custom_query)
                 if "hn" in channels:
-                    futures["hn"] = executor.submit(scan_hackernews)
+                    futures["hn"] = executor.submit(scan_hackernews, time_range, min_faves, custom_query)
                 if "reddit" in channels:
-                    futures["reddit"] = executor.submit(scan_reddit)
+                    futures["reddit"] = executor.submit(scan_reddit, time_range, min_faves, custom_query)
                 if "producthunt" in channels:
-                    futures["producthunt"] = executor.submit(scan_producthunt)
+                    futures["producthunt"] = executor.submit(scan_producthunt, time_range, min_faves, custom_query)
 
                 for k, fut in futures.items():
                     try:
