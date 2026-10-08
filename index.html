@@ -283,6 +283,11 @@
       grid.innerHTML = '';
 
       if (!items || items.length === 0) {
+        emptyState.innerHTML = `
+          <div class="text-4xl mb-3">🔍</div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-1">未在当前严格过滤条件下匹配到项目</h3>
+          <p class="text-xs text-slate-500 max-w-md mx-auto">建议：将【互动门槛】调为「不设限制」或将【时间跨度】放宽至「近 3 天」，然后再次点击扫描！</p>
+        `;
         emptyState.classList.remove('hidden');
         return;
       }
@@ -398,78 +403,6 @@
 
     // 监听年限选择切换即时过滤
     document.getElementById('sel-age').addEventListener('change', filterCards);
-      emptyState.classList.add('hidden');
-
-      items.forEach(item => {
-        const isFresh = item.age_days !== null && item.age_days <= 30;
-
-        const card = document.createElement('div');
-        card.className = `bg-slate-900 border ${isFresh ? 'border-emerald-500 shadow-lg shadow-emerald-500/10' : 'border-slate-800'} rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition card-item`;
-        card.setAttribute('data-text', (item.title + ' ' + item.domain).toLowerCase());
-
-        card.innerHTML = `
-          <div>
-            <!-- 卡片头部标签 -->
-            <div class="flex items-center justify-between mb-2.5">
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded text-white ${item.badge_color}">
-                ${item.channel}
-              </span>
-              <span class="text-[11px] font-mono px-2 py-0.5 rounded ${isFresh ? 'bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}">
-                ${item.age_tag}
-              </span>
-            </div>
-
-            <!-- 目标域名与直达外链 -->
-            <div class="mb-2">
-              <a href="${item.url}" target="_blank" class="text-sm font-bold text-white hover:text-emerald-400 transition flex items-center space-x-1 group">
-                <span class="group-hover:underline">${item.domain}</span>
-                <span class="text-xs text-slate-500 group-hover:text-emerald-400">↗</span>
-              </a>
-            </div>
-
-            <!-- 项目标题/推文描述 -->
-            <p class="text-xs text-slate-300 leading-relaxed line-clamp-3 mb-4">
-              ${item.title}
-            </p>
-          </div>
-
-          <!-- 底部工具栏 (一键反查) -->
-          <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-            <span class="text-slate-500 font-mono">${item.pub_date ? item.pub_date.substring(0, 16) : '近期'}</span>
-
-            <div class="flex items-center space-x-1.5 font-sans">
-              <a href="https://x.com/search?q=${encodeURIComponent(item.domain + ' min_faves:10')}&f=live" target="_blank" class="hover:text-sky-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="去 X 验证高赞讨论与点赞数">
-                🐦 X热度
-              </a>
-              <a href="https://trends.google.com/trends/explore?q=${encodeURIComponent(item.domain.split('.')[0])}" target="_blank" class="hover:text-emerald-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="去 Google Trends 查搜量走势">
-                📈 趋势
-              </a>
-              <a href="https://www.google.com/search?q=${encodeURIComponent('site:' + item.domain)}" target="_blank" class="hover:text-teal-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查 Google 收录与 SERP">
-                🔎 收录
-              </a>
-              <a href="${item.source_url}" target="_blank" class="hover:text-orange-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查看原始推文/帖子">
-                💬 来源
-              </a>
-            </div>
-          </div>
-        `;
-
-        grid.appendChild(card);
-      });
-    }
-
-    function filterCards() {
-      const q = document.getElementById('filter-input').value.toLowerCase().trim();
-      const cards = document.querySelectorAll('.card-item');
-      cards.forEach(c => {
-        const text = c.getAttribute('data-text');
-        if (!q || text.includes(q)) {
-          c.classList.remove('hidden');
-        } else {
-          c.classList.add('hidden');
-        }
-      });
-    }
 
     function togglePatrol() {
       isPatrolling = !isPatrolling;
@@ -492,6 +425,11 @@
     // 默认回车搜索
     document.getElementById('filter-input').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') filterCards();
+    });
+
+    // 页面加载完成后自动触发一次扫描
+    window.addEventListener('DOMContentLoaded', () => {
+      triggerScan();
     });
   </script>
 </body>

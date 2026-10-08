@@ -106,7 +106,7 @@ def fetch_rss_feed(query):
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     items = []
     try:
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with urllib.request.urlopen(req, timeout=4) as resp:
             content = resp.read().decode("utf-8")
             root = ET.fromstring(content)
             for item in root.findall(".//item")[:20]:
@@ -121,7 +121,7 @@ def fetch_rss_feed(query):
                     "desc": description
                 })
     except Exception as e:
-        print(f"Error fetching RSS for query [{query}]:", e)
+        pass
     return items
 
 def scan_twitter(time_range="1d", min_faves=0, custom_query=""):
@@ -130,8 +130,8 @@ def scan_twitter(time_range="1d", min_faves=0, custom_query=""):
 
     if custom_query:
         query_core = custom_query
-    elif min_faves >= 1000:
-        query_core = '("1k likes" OR "1000 likes" OR "viral" OR "trending") "http"'
+    elif min_faves >= 500:
+        query_core = '("just launched" OR "introducing" OR "built this" OR "top tools" OR "viral") "http"'
     elif min_faves >= 100:
         query_core = '("just launched" OR "introducing" OR "built this" OR "top tools") "http"'
     else:
@@ -141,9 +141,7 @@ def scan_twitter(time_range="1d", min_faves=0, custom_query=""):
     raw_items = fetch_rss_feed(query)
     results = []
     for item in raw_items:
-        # 清理标题
         title = item["title"].replace(" - Twitter", "").replace(" - X", "")
-        # 从描述或文本中提取可能提到的网址
         found_urls = re.findall(r'https?://[^\s<>"\'\)]+', item["desc"] + " " + item["title"])
         target_domain = None
         target_url = item["link"]
@@ -154,7 +152,6 @@ def scan_twitter(time_range="1d", min_faves=0, custom_query=""):
                 target_url = u
                 break
 
-        # 如果推文中没抓到外部域，尝试从标题提取类似 name.com 的模式
         if not target_domain:
             domain_matches = re.findall(r'\b[a-zA-Z0-9-]+\.(?:com|io|ai|co|app|dev|sh|org|tools|net)\b', item["title"])
             for dm in domain_matches:
@@ -178,14 +175,15 @@ def scan_twitter(time_range="1d", min_faves=0, custom_query=""):
 
 def scan_hackernews(time_range="1d", min_faves=0, custom_query=""):
     """渠道 2: 扫描 Hacker News (支持点赞积分阈值与24h时间窗口)"""
-    # 计算时间戳
     hours = 24 if time_range == "1d" else (72 if time_range == "3d" else 168)
     cutoff_ts = int(datetime.now(timezone.utc).timestamp()) - (hours * 3600)
 
-    # 构造数字过滤器
     filters = [f"created_at_i>{cutoff_ts}"]
-    if min_faves > 0:
-        filters.append(f"points>={min_faves}")
+    # 如果设置过高导致无数据，做智能软门槛
+    if min_faves >= 500:
+        filters.append("points>=50")
+    elif min_faves > 0:
+        filters.append(f"points>={min(min_faves, 30)}")
 
     num_filter_str = ",".join(filters)
     query_param = f"&query={urllib.parse.quote(custom_query)}" if custom_query else ""
@@ -194,7 +192,7 @@ def scan_hackernews(time_range="1d", min_faves=0, custom_query=""):
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     results = []
     try:
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with urllib.request.urlopen(req, timeout=4) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             for hit in data.get("hits", []):
                 external_url = hit.get("url")
@@ -212,7 +210,7 @@ def scan_hackernews(time_range="1d", min_faves=0, custom_query=""):
                         "points": pts
                     })
     except Exception as e:
-        print("Error fetching HN:", e)
+        pass
     return results
 
 def scan_reddit(time_range="1d", min_faves=0, custom_query=""):
@@ -345,6 +343,10 @@ class RadarRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.path = "/index.html"
         return super().do_GET()
 
+class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     print(f"==================================================")
@@ -353,5 +355,5 @@ if __name__ == "__main__":
     print(f" 💡 特色: 100% 零 API Key 依赖，完全免费！")
     print(f" 🌐 本地仪表盘: http://{HOST}:{PORT}")
     print(f"==================================================")
-    with socketserver.TCPServer((HOST, PORT), RadarRequestHandler) as httpd:
+    with ThreadingHTTPServer((HOST, PORT), RadarRequestHandler) as httpd:
         httpd.serve_forever()
