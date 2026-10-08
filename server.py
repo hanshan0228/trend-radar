@@ -255,60 +255,132 @@ def scan_hackernews(time_range="1d", min_faves=0, custom_query=""):
     return results
 
 def scan_reddit(time_range="1d", min_faves=0, custom_query=""):
-    """渠道 3: 扫描 Reddit (支持时间与爆款筛选)"""
-    time_filter = f"when:{time_range}" if time_range else "when:1d"
-    sub_q = custom_query if custom_query else '("launched" OR "built this" OR "showcase" OR "upvotes")'
-    query = f'site:reddit.com/r/SideProject {sub_q} {time_filter}'
-    raw_items = fetch_rss_feed(query)
+    """渠道 3: 扫描 Reddit (直连 r/SideProject 官方 RSS 提炼独立项目)"""
     results = []
-    for item in raw_items:
-        title = item["title"].replace(" - Reddit", "").strip()
-        domain_matches = re.findall(r'\b[a-zA-Z0-9-]+\.(?:com|io|ai|co|app|dev|sh|tools|xyz|me)\b', title)
-        target_domain = None
-        for dm in domain_matches:
-            if dm.lower() not in GREYLIST:
-                target_domain = dm.lower()
-                break
+    # 策略 1: 优先直连 Reddit 官方高质量 RSS 源 (含正文与外部项目链接)
+    try:
+        url = 'https://www.reddit.com/r/SideProject/.rss'
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'}
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            content = resp.read()
+            root = ET.fromstring(content)
+            entries = root.findall('{http://www.w3.org/2005/Atom}entry')
+            for e in entries:
+                title = e.find('{http://www.w3.org/2005/Atom}title').text or ""
+                link = e.find('{http://www.w3.org/2005/Atom}link').attrib.get('href') if e.find('{http://www.w3.org/2005/Atom}link') is not None else ""
+                body = e.find('{http://www.w3.org/2005/Atom}content').text if e.find('{http://www.w3.org/2005/Atom}content') is not None else ""
 
-        if not target_domain:
-            m = re.search(r'(?:launched|built|introducing|created|called|named)\s+([A-Z][a-zA-Z0-9_-]{2,20})', title)
-            if m:
-                target_domain = f"{m.group(1).lower()}.com"
+                # 提取正文或标题中的外部独立域名
+                domains = re.findall(r'https?://(?:www\.)?([a-zA-Z0-9-]+\.(?:com|io|ai|co|app|dev|sh|org|tools|net|xyz|me))', body + " " + title)
+                target_domain = None
+                for d in domains:
+                    dl = d.lower()
+                    if dl not in GREYLIST and "reddit" not in dl and "redd.it" not in dl:
+                        target_domain = dl
+                        break
 
-        if not target_domain:
-            target_domain = "reddit.com/r/SideProject"
+                if not target_domain:
+                    # 从标题推导产品名
+                    m = re.search(r'(?:launched|built|introducing|created|called|named)\s+([A-Z][a-zA-Z0-9_-]{2,20})', title)
+                    if m:
+                        target_domain = f"{m.group(1).lower()}.com"
 
-        results.append({
-            "channel": "Reddit (SideProject)",
-            "badge_color": "bg-red-500",
-            "title": title,
-            "domain": target_domain,
-            "url": f"https://{target_domain}" if not target_domain.startswith("reddit.com") else item["link"],
-            "source_url": item["link"],
-            "pub_date": item["pubDate"]
-        })
+                if not target_domain:
+                    target_domain = "reddit.com/r/SideProject"
+
+                results.append({
+                    "channel": "Reddit (SideProject)",
+                    "badge_color": "bg-red-500",
+                    "title": title.strip(),
+                    "domain": target_domain,
+                    "url": f"https://{target_domain}" if not target_domain.startswith("reddit.com") else link,
+                    "source_url": link,
+                    "pub_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                })
+    except Exception as e:
+        pass
+
+    # 策略 2: 若直连失败则走 Google News 搜索兜底
+    if not results:
+        sub_q = custom_query if custom_query else '("launched" OR "built this" OR "showcase" OR "upvotes")'
+        query = f'site:reddit.com/r/SideProject {sub_q}'
+        raw_items = fetch_rss_feed(query)
+        for item in raw_items:
+            title = item["title"].replace(" - Reddit", "").strip()
+            domain_matches = re.findall(r'\b[a-zA-Z0-9-]+\.(?:com|io|ai|co|app|dev|sh|tools|xyz|me)\b', title)
+            target_domain = None
+            for dm in domain_matches:
+                if dm.lower() not in GREYLIST:
+                    target_domain = dm.lower()
+                    break
+            if not target_domain:
+                target_domain = "reddit.com/r/SideProject"
+            results.append({
+                "channel": "Reddit (SideProject)",
+                "badge_color": "bg-red-500",
+                "title": title,
+                "domain": target_domain,
+                "url": f"https://{target_domain}" if not target_domain.startswith("reddit.com") else item["link"],
+                "source_url": item["link"],
+                "pub_date": item["pubDate"]
+            })
     return results
 
 def scan_producthunt(time_range="1d", min_faves=0, custom_query=""):
-    """渠道 4: 扫描 Product Hunt"""
-    time_filter = f"when:{time_range}" if time_range else "when:1d"
-    sub_q = custom_query if custom_query else "posts"
-    query = f'site:producthunt.com/{sub_q} {time_filter}'
-    raw_items = fetch_rss_feed(query)
+    """渠道 4: 扫描 Product Hunt (官方实时 Atom Feed 直连 + Google News 兜底)"""
     results = []
-    for item in raw_items:
-        title = item["title"].replace(" - Product Hunt", "")
-        parts = title.split(" - ")
-        prod_name = parts[0].strip() if parts else title
-        results.append({
-            "channel": "Product Hunt",
-            "badge_color": "bg-amber-600",
-            "title": title,
-            "domain": prod_name.lower().replace(" ", "") + ".com",
-            "url": item["link"],
-            "source_url": item["link"],
-            "pub_date": item["pubDate"]
-        })
+    # 策略 1: 优先直连 Product Hunt 官方最新发布 Feed (当天 50 款首发产品)
+    try:
+        url = 'https://www.producthunt.com/feed'
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            root = ET.fromstring(resp.read())
+            entries = root.findall('{http://www.w3.org/2005/Atom}entry')
+            for e in entries:
+                title = e.find('{http://www.w3.org/2005/Atom}title').text or ""
+                link = e.find('{http://www.w3.org/2005/Atom}link').attrib.get('href') if e.find('{http://www.w3.org/2005/Atom}link') is not None else ""
+                prod_name = title.split(" - ")[0].strip() if " - " in title else title.strip()
+                clean_name = re.sub(r'[^a-zA-Z0-9]', '', prod_name).lower()
+                target_domain = f"{clean_name}.com" if clean_name else "producthunt.com"
+
+                # 排除大厂
+                if any(corp in title.lower() for corp in CORP_KEYWORDS):
+                    continue
+
+                results.append({
+                    "channel": "Product Hunt",
+                    "badge_color": "bg-amber-600",
+                    "title": title.strip(),
+                    "domain": target_domain,
+                    "url": link,
+                    "source_url": link,
+                    "pub_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                })
+    except Exception as e:
+        pass
+
+    # 策略 2: 兜底
+    if not results:
+        time_filter = f"when:{time_range}" if time_range else "when:3d"
+        sub_q = custom_query if custom_query else "posts"
+        query = f'site:producthunt.com/{sub_q} {time_filter}'
+        raw_items = fetch_rss_feed(query)
+        for item in raw_items:
+            title = item["title"].replace(" - Product Hunt", "").strip()
+            parts = title.split(" - ")
+            prod_name = parts[0].strip() if parts else title
+            clean_name = re.sub(r'[^a-zA-Z0-9]', '', prod_name).lower()
+            results.append({
+                "channel": "Product Hunt",
+                "badge_color": "bg-amber-600",
+                "title": title,
+                "domain": f"{clean_name}.com" if clean_name else "producthunt.com",
+                "url": item["link"],
+                "source_url": item["link"],
+                "pub_date": item["pubDate"]
+            })
     return results
 
 class RadarRequestHandler(http.server.SimpleHTTPRequestHandler):
