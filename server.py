@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 PORT = 8989
 HOST = "127.0.0.1"
 
-# 灰名单：忽略知名成熟平台、社交媒体、搜索引擎等
+# 灰名单：忽略知名成熟平台、大厂官方域名、社交媒体等
 GREYLIST = {
     "google.com", "github.com", "youtube.com", "twitter.com", "x.com",
     "reddit.com", "producthunt.com", "ycombinator.com", "medium.com",
@@ -20,7 +20,18 @@ GREYLIST = {
     "bit.ly", "instagram.com", "facebook.com", "tiktok.com", "discord.com",
     "discord.gg", "substack.com", "notion.site", "loom.com", "figma.com",
     "microsoft.com", "techcrunch.com", "theverge.com", "bloomberg.com",
-    "forbes.com", "wired.com", "news.ycombinator.com", "imgur.com"
+    "forbes.com", "wired.com", "news.ycombinator.com", "imgur.com",
+    # 超级大厂与公关官方号域名
+    "openai.com", "anthropic.com", "claude.ai", "claude.com", "deepseek.com",
+    "nvidia.com", "meta.com", "servicenow.com", "salesforce.com", "adobe.com",
+    "netflix.com", "spotify.com", "huggingface.co", "adidas.com", "nike.com"
+}
+
+# 过滤大厂企业级通稿标题关键词（独立开发者雷达不看大厂官方通稿）
+CORP_KEYWORDS = {
+    "anthropic just", "openai just", "google just", "nvidia just", "microsoft just",
+    "chatgpt just", "the white house", "servicenow just", "deepseek just", "google’s",
+    "world heavyweight", "wwe", "senate", "republicans for", "democrats for"
 }
 
 # 常见平台二级域名识别
@@ -61,13 +72,13 @@ def fetch_domain_age(domain):
     if domain in DOMAIN_CACHE:
         return DOMAIN_CACHE[domain]
 
-    # 特殊社交平台兜底
+    # 特殊社交平台标记：属于平台帖子，而非独立注册的新域名
     if domain.startswith("x.com"):
-        res = (1, "🐦 X 动态")
+        res = (None, "🐦 X 动态(无独立域名)")
         DOMAIN_CACHE[domain] = res
         return res
     if domain.startswith("reddit.com"):
-        res = (1, "🔴 Reddit 动态")
+        res = (None, "🔴 Reddit 动态(无独立域名)")
         DOMAIN_CACHE[domain] = res
         return res
 
@@ -135,23 +146,29 @@ def fetch_rss_feed(query):
     return items
 
 def scan_twitter(time_range="3d", min_faves=0, custom_query=""):
-    """渠道 1: 扫描 X/Twitter (支持时间跨度、高赞爆款模式与自定义词)"""
+    """渠道 1: 扫描 X/Twitter (锁定独立开发/新工具，排除大厂公关营销号)"""
     time_filter = f"when:{time_range}" if time_range else "when:3d"
 
     if custom_query:
         query_core = f"({custom_query})"
     elif min_faves >= 300:
-        query_core = '("just launched" OR "just shipped" OR "introducing" OR "built this tool" OR "side project")'
+        query_core = '("built a tool" OR "built an app" OR "made a tool" OR "launched my app" OR "launched my tool" OR "my new tool" OR "my new app" OR "my side project")'
     else:
-        query_core = '("just launched" OR "introducing" OR "built this tool" OR "side project" OR "launched my")'
+        query_core = '("built a tool" OR "built an app" OR "made a tool" OR "launched my tool" OR "launched my app" OR "my new tool" OR "my side project" OR "side project alert")'
 
-    query = f'site:x.com {query_core} {time_filter}'
+    # 排除大厂公关噪音频道
+    query = f'site:x.com {query_core} -openai -anthropic -google -nvidia -microsoft -whitehouse {time_filter}'
     raw_items = fetch_rss_feed(query)
     results = []
     for item in raw_items:
         title = item["title"].replace(" - Twitter", "").replace(" - X", "").strip()
 
-        # 1. 优先提取标题中的独立域名 (如 mytool.ai, app.dev)
+        # 检查是否为大厂官方通稿
+        lower_title = title.lower()
+        if any(corp in lower_title for corp in CORP_KEYWORDS):
+            continue
+
+        # 1. 优先提取标题中的独立域名 (如 mytool.ai, catcollector.app)
         domain_matches = re.findall(r'\b[a-zA-Z0-9-]+\.(?:com|io|ai|co|app|dev|sh|org|tools|net|xyz|me)\b', title)
         target_domain = None
         target_url = item["link"]
@@ -161,23 +178,26 @@ def scan_twitter(time_range="3d", min_faves=0, custom_query=""):
                 target_url = f"https://{target_domain}"
                 break
 
-        # 2. 尝试从 @提及 中提取项目/作者 (如 @shiftrobotics, @davis7)
+        # 2. 尝试从发布动词后提取产品名称 (如 Launching my new app, Who Goes -> whogoes.com)
         if not target_domain:
-            mentions = re.findall(r'@([a-zA-Z0-9_]{3,20})', title)
-            if mentions:
-                handle = mentions[0].lower()
-                target_domain = f"{handle}.com"
-                target_url = f"https://x.com/{handle}"
-
-        # 3. 尝试从发布动词后提取产品名称 (如 introducing Promethee, called solOS)
-        if not target_domain:
-            m = re.search(r'(?:launching|launched|shipped|built|introducing|created|called|announcing)\s+([A-Z][a-zA-Z0-9_-]{2,20})', title)
+            m = re.search(r'(?:launching|launched|built|made|created|named|called)\s+(?:my\s+)?(?:new\s+)?(?:app|tool|saas|project|site|website)[,\s:]+([A-Z][a-zA-Z0-9_-]{2,20})', title, re.I)
             if m:
                 pname = m.group(1).lower()
-                target_domain = f"{pname}.com"
-                target_url = item["link"]
+                if pname not in {"google", "claude", "chatgpt", "openai", "apple", "nvidia"}:
+                    target_domain = f"{pname}.com"
+                    target_url = item["link"]
 
-        # 4. 终极兜底：绝不丢弃宝贵的推文数据！
+        # 3. 尝试从 @提及 中提取独立作者 (排除大厂账号)
+        if not target_domain:
+            mentions = re.findall(r'@([a-zA-Z0-9_]{3,20})', title)
+            for handle in mentions:
+                hl = handle.lower()
+                if hl not in {"openai", "anthropic", "google", "nvidia", "x", "twitter", "microsoft", "apple", "claude", "chatgpt"}:
+                    target_domain = f"{hl}.com"
+                    target_url = f"https://x.com/{handle}"
+                    break
+
+        # 4. 兜底为 x.com/post
         if not target_domain:
             target_domain = "x.com/post"
             target_url = item["link"]
@@ -347,17 +367,32 @@ class RadarRequestHandler(http.server.SimpleHTTPRequestHandler):
                     seen_domains.add(d)
                     unique_items.append(it)
 
-            # 极速返回：不阻塞查询域名年龄，直接返回抓取到的新鲜项目
+            # 极速返回：若指定了域名年限，先过滤掉已确定不符合条件或非独立域名的项目
             final_items = []
-            for it in unique_items[:30]:
+            for it in unique_items:
                 d = it["domain"]
+
+                # 如果用户设置了严格年限 (如 <= 30天 或 <= 180天)
+                if max_age <= 180:
+                    # 社交平台自身帖子并非独立域名，直接剔除
+                    if d.startswith("x.com") or d.startswith("reddit.com"):
+                        continue
+
                 # 如果命中本地缓存或 PaaS，直接带上结果
                 if d in DOMAIN_CACHE:
-                    it["age_days"], it["age_tag"] = DOMAIN_CACHE[d]
+                    age_days, age_tag = DOMAIN_CACHE[d]
+                    it["age_days"] = age_days
+                    it["age_tag"] = age_tag
+                    # 如果已知天数且大于最大年限，排除
+                    if max_age < 999999 and (age_days is None or age_days > max_age):
+                        continue
                 else:
                     it["age_days"] = None
                     it["age_tag"] = "⏳ 检测中..."
+
                 final_items.append(it)
+                if len(final_items) >= 30:
+                    break
 
             # 输出 JSON
             self.send_response(200)
