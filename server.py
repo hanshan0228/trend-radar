@@ -61,6 +61,16 @@ def fetch_domain_age(domain):
     if domain in DOMAIN_CACHE:
         return DOMAIN_CACHE[domain]
 
+    # 特殊社交平台兜底
+    if domain.startswith("x.com"):
+        res = (1, "🐦 X 动态")
+        DOMAIN_CACHE[domain] = res
+        return res
+    if domain.startswith("reddit.com"):
+        res = (1, "🔴 Reddit 动态")
+        DOMAIN_CACHE[domain] = res
+        return res
+
     # 特殊 PaaS 平台处理
     for paas in PAAS_DOMAINS:
         if domain.endswith(paas):
@@ -129,46 +139,59 @@ def scan_twitter(time_range="3d", min_faves=0, custom_query=""):
     time_filter = f"when:{time_range}" if time_range else "when:3d"
 
     if custom_query:
-        query_core = custom_query
+        query_core = f"({custom_query})"
     elif min_faves >= 300:
-        query_core = '("just launched" OR "just shipped" OR "introducing" OR "built this") "http"'
+        query_core = '("just launched" OR "just shipped" OR "introducing" OR "built this tool" OR "side project")'
     else:
-        query_core = '("just launched" OR "introducing" OR "built this tool") "http"'
+        query_core = '("just launched" OR "introducing" OR "built this tool" OR "side project" OR "launched my")'
 
-    query = f'site:x.com ({query_core}) {time_filter}'
+    query = f'site:x.com {query_core} {time_filter}'
     raw_items = fetch_rss_feed(query)
     results = []
     for item in raw_items:
-        title = item["title"].replace(" - Twitter", "").replace(" - X", "")
-        found_urls = re.findall(r'https?://[^\s<>"\'\)]+', item["desc"] + " " + item["title"])
+        title = item["title"].replace(" - Twitter", "").replace(" - X", "").strip()
+
+        # 1. 优先提取标题中的独立域名 (如 mytool.ai, app.dev)
+        domain_matches = re.findall(r'\b[a-zA-Z0-9-]+\.(?:com|io|ai|co|app|dev|sh|org|tools|net|xyz|me)\b', title)
         target_domain = None
         target_url = item["link"]
-        for u in found_urls:
-            d = extract_domain(u)
-            if d:
-                target_domain = d
-                target_url = u
+        for dm in domain_matches:
+            if dm.lower() not in GREYLIST:
+                target_domain = dm.lower()
+                target_url = f"https://{target_domain}"
                 break
 
+        # 2. 尝试从 @提及 中提取项目/作者 (如 @shiftrobotics, @davis7)
         if not target_domain:
-            domain_matches = re.findall(r'\b[a-zA-Z0-9-]+\.(?:com|io|ai|co|app|dev|sh|org|tools|net)\b', item["title"])
-            for dm in domain_matches:
-                if dm.lower() not in GREYLIST:
-                    target_domain = dm.lower()
-                    target_url = f"https://{target_domain}"
-                    break
+            mentions = re.findall(r'@([a-zA-Z0-9_]{3,20})', title)
+            if mentions:
+                handle = mentions[0].lower()
+                target_domain = f"{handle}.com"
+                target_url = f"https://x.com/{handle}"
 
-        if target_domain:
-            results.append({
-                "channel": "Twitter / X",
-                "badge_color": "bg-sky-500",
-                "title": title,
-                "domain": target_domain,
-                "url": target_url,
-                "source_url": item["link"],
-                "pub_date": item["pubDate"],
-                "min_faves": min_faves
-            })
+        # 3. 尝试从发布动词后提取产品名称 (如 introducing Promethee, called solOS)
+        if not target_domain:
+            m = re.search(r'(?:launching|launched|shipped|built|introducing|created|called|announcing)\s+([A-Z][a-zA-Z0-9_-]{2,20})', title)
+            if m:
+                pname = m.group(1).lower()
+                target_domain = f"{pname}.com"
+                target_url = item["link"]
+
+        # 4. 终极兜底：绝不丢弃宝贵的推文数据！
+        if not target_domain:
+            target_domain = "x.com/post"
+            target_url = item["link"]
+
+        results.append({
+            "channel": "Twitter / X",
+            "badge_color": "bg-sky-500",
+            "title": title,
+            "domain": target_domain,
+            "url": target_url,
+            "source_url": item["link"],
+            "pub_date": item["pubDate"],
+            "min_faves": min_faves
+        })
     return results
 
 def scan_hackernews(time_range="1d", min_faves=0, custom_query=""):
@@ -219,24 +242,31 @@ def scan_reddit(time_range="1d", min_faves=0, custom_query=""):
     raw_items = fetch_rss_feed(query)
     results = []
     for item in raw_items:
-        title = item["title"].replace(" - Reddit", "")
-        domain_matches = re.findall(r'\b[a-zA-Z0-9-]+\.(?:com|io|ai|co|app|dev|sh|tools)\b', item["title"])
+        title = item["title"].replace(" - Reddit", "").strip()
+        domain_matches = re.findall(r'\b[a-zA-Z0-9-]+\.(?:com|io|ai|co|app|dev|sh|tools|xyz|me)\b', title)
         target_domain = None
         for dm in domain_matches:
             if dm.lower() not in GREYLIST:
                 target_domain = dm.lower()
                 break
 
-        if target_domain:
-            results.append({
-                "channel": "Reddit (SideProject)",
-                "badge_color": "bg-red-500",
-                "title": title,
-                "domain": target_domain,
-                "url": f"https://{target_domain}",
-                "source_url": item["link"],
-                "pub_date": item["pubDate"]
-            })
+        if not target_domain:
+            m = re.search(r'(?:launched|built|introducing|created|called|named)\s+([A-Z][a-zA-Z0-9_-]{2,20})', title)
+            if m:
+                target_domain = f"{m.group(1).lower()}.com"
+
+        if not target_domain:
+            target_domain = "reddit.com/r/SideProject"
+
+        results.append({
+            "channel": "Reddit (SideProject)",
+            "badge_color": "bg-red-500",
+            "title": title,
+            "domain": target_domain,
+            "url": f"https://{target_domain}" if not target_domain.startswith("reddit.com") else item["link"],
+            "source_url": item["link"],
+            "pub_date": item["pubDate"]
+        })
     return results
 
 def scan_producthunt(time_range="1d", min_faves=0, custom_query=""):
