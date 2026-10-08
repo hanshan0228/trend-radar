@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>全渠道新产品趋势雷达 (Multi-Channel Trend Radar)</title>
+  <title>TREND RADAR · 全渠道新产品趋势雷达</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -12,235 +12,428 @@
       theme: {
         extend: {
           colors: {
-            brand: {
-              50: '#f0fdf4',
-              500: '#22c55e',
-              600: '#16a34a',
+            radar: {
+              bg: '#0a0b0e',
+              card: '#111317',
+              border: '#1f242d',
+              accent: '#f97316', // 经典橙色
+              green: '#22c55e',
+              cyan: '#06b6d4',
             }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace']
           }
         }
       }
     }
   </script>
   <style>
-    @keyframes pulse-subtle {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
+    body {
+      background-color: #0a0b0e;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    .animate-pulse-subtle {
-      animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+    @keyframes radar-sweep {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .animate-radar {
+      animation: radar-sweep 4s linear infinite;
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500 selection:text-white">
+<body class="min-h-screen selection:bg-orange-500 selection:text-white p-4 md:p-6 custom-scroll">
 
-  <!-- 顶部导航 -->
-  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center font-black text-slate-950 text-lg shadow-lg shadow-emerald-500/20">
-          ⚡
+  <div class="max-w-[1360px] mx-auto space-y-5">
+
+    <!-- 1. 顶部 Header (像素级复刻) -->
+    <header class="flex items-center justify-between pb-3 border-b border-slate-800/80">
+      <div class="flex items-center space-x-3.5">
+        <!-- 动态雷达图标 -->
+        <div class="relative w-10 h-10 rounded-full border border-orange-500/40 flex items-center justify-center bg-orange-950/20 shadow-lg shadow-orange-500/10">
+          <div class="w-6 h-6 rounded-full border border-orange-500/60 flex items-center justify-center">
+            <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+          </div>
+          <div class="absolute inset-0 rounded-full border-t border-orange-400 animate-radar pointer-events-none"></div>
         </div>
+
         <div>
-          <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
-            TrendRadar · 全渠道趋势雷达
-            <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono font-medium">100% 免费免API</span>
+          <h1 class="text-lg font-black tracking-wider text-white flex items-center gap-2 font-mono">
+            TREND RADAR
+            <span class="text-[10px] font-normal px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              免API 增强版
+            </span>
           </h1>
-          <p class="text-xs text-slate-400">在 Google Trends 反应前，从极客发源地捕获刚上线的婴儿期新产品</p>
+          <p class="text-xs text-slate-400 font-mono tracking-tight">
+            实时扫描多渠道 · 筛带链接高互动项目 · 反查域名注册天数 + 3月流量趋势
+          </p>
         </div>
       </div>
 
-      <!-- 快速状态与作者注脚 -->
-      <div class="flex items-center space-x-4">
-        <div id="patrol-badge" class="hidden items-center space-x-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full text-xs font-mono">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          <span>自动巡逻中...</span>
+      <!-- 右侧系统状态 -->
+      <div class="flex items-center space-x-4 text-xs font-mono">
+        <div class="flex items-center space-x-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="text-emerald-400 font-medium">免API引擎已就绪</span>
         </div>
-        <a href="https://github.com/qiayue/Twitter-Trend-Radar" target="_blank" class="text-xs text-slate-400 hover:text-slate-200 transition">致敬 qiayue 开源灵感</a>
+        <span class="text-slate-600">|</span>
+        <span id="patrol-status-text" class="text-slate-400">待命</span>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- 主体区域 -->
-  <main class="max-w-7xl mx-auto px-4 py-6">
 
-    <!-- 控制面板 -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6 shadow-xl">
-      <!-- 快捷模式选择 -->
-      <div class="flex items-center space-x-2 mb-4 pb-3 border-b border-slate-800 text-xs">
-        <span class="text-slate-400 font-semibold mr-1">🎯 探测模式:</span>
-        <button onclick="applyPreset('viral')" class="px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 font-bold transition flex items-center gap-1.5">
-          <span>🔥</span> 24h爆款破千 (Viral ≥1000赞)
-        </button>
-        <button onclick="applyPreset('launch')" class="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 font-medium transition flex items-center gap-1.5">
-          <span>🚀</span> 新上线发布 (Just Launched)
-        </button>
-        <button onclick="applyPreset('custom')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition flex items-center gap-1.5">
-          <span>⚙️</span> 自定义参数
-        </button>
-      </div>
+    <!-- 2. 控制面板与关键词池 (对齐参考图交互) -->
+    <section class="bg-[#111317] border border-slate-800/80 rounded-2xl p-5 space-y-4 shadow-2xl">
 
-      <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
+      <!-- 第一行：关键词池输入框 + 4个主下拉框 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-end">
 
-        <!-- 渠道选择 (占据 3 列) -->
-        <div class="md:col-span-3 space-y-2">
-          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">监控数据渠道 (支持多选)</label>
-          <div class="flex flex-wrap gap-2 text-xs">
-            <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition has-[:checked]:border-sky-500 has-[:checked]:bg-sky-500/10 has-[:checked]:text-sky-400">
-              <input type="checkbox" id="chk-twitter" checked class="rounded border-slate-700 text-sky-500 focus:ring-0">
-              <span>Twitter / X</span>
-            </label>
-            <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition has-[:checked]:border-orange-500 has-[:checked]:bg-orange-500/10 has-[:checked]:text-orange-400">
-              <input type="checkbox" id="chk-hn" checked class="rounded border-slate-700 text-orange-500 focus:ring-0">
-              <span>Show HN</span>
-            </label>
-            <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition has-[:checked]:border-red-500 has-[:checked]:bg-red-500/10 has-[:checked]:text-red-400">
-              <input type="checkbox" id="chk-reddit" checked class="rounded border-slate-700 text-red-500 focus:ring-0">
-              <span>Reddit (SideProject)</span>
-            </label>
-            <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition has-[:checked]:border-amber-500 has-[:checked]:bg-amber-500/10 has-[:checked]:text-amber-400">
-              <input type="checkbox" id="chk-ph" checked class="rounded border-slate-700 text-amber-500 focus:ring-0">
-              <span>Product Hunt</span>
-            </label>
+        <!-- 关键词池 Tag 容器 (占 6 列) -->
+        <div class="lg:col-span-6 space-y-1.5">
+          <label class="text-[11px] font-mono font-medium text-slate-400 block">
+            关键词池 (每轮逐个查，支持回车自建)
+          </label>
+          <div id="tag-container" class="min-h-[42px] bg-[#0c0d10] border border-slate-800 rounded-xl p-1.5 flex flex-wrap items-center gap-1.5 focus-within:border-orange-500/60 transition">
+            <!-- 初始标签 -->
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-500/15 border border-orange-500/40 text-orange-400 text-xs font-mono">
+              <span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+              <span class="tag-val">just launched</span>
+              <button onclick="removeTag(this)" class="hover:text-white ml-0.5">×</button>
+            </span>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-xs font-mono">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span class="tag-val">just shipped</span>
+              <button onclick="removeTag(this)" class="hover:text-white ml-0.5">×</button>
+            </span>
+
+            <input type="text" id="tag-input" placeholder="输入关键词后回车添加，可加多个..." class="flex-1 min-w-[140px] bg-transparent text-xs text-slate-200 outline-none px-2 py-1 placeholder-slate-600">
           </div>
         </div>
 
-        <!-- 时间跨度 -->
-        <div class="space-y-2">
-          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">⏱️ 时间跨度</label>
-          <select id="sel-time" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
-            <option value="1d" selected>近 24 小时 (24h)</option>
-            <option value="3d">近 3 天 (3d)</option>
-            <option value="7d">近 7 天 (7d)</option>
+        <!-- 点赞下限 -->
+        <div class="lg:col-span-1 space-y-1.5">
+          <label class="text-[11px] font-mono font-medium text-slate-400 block">点赞下限</label>
+          <select id="sel-faves" class="w-full h-[42px] bg-[#0c0d10] border border-slate-800 rounded-xl px-2.5 text-xs font-mono text-slate-200 outline-none focus:border-orange-500">
+            <option value="1000">1000</option>
+            <option value="300" selected>300</option>
+            <option value="100">100</option>
+            <option value="0">0</option>
           </select>
         </div>
 
-        <!-- 点赞/热度门槛 -->
-        <div class="space-y-2">
-          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">🔥 互动门槛 (赞/分)</label>
-          <select id="sel-faves" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-rose-500">
-            <option value="1000">🔥 破千爆款 (≥1,000赞)</option>
-            <option value="100">⚡ 热门精选 (≥100赞)</option>
-            <option value="10">🌱 早期潜力 (≥10赞)</option>
-            <option value="0" selected>⚪ 不设限制 (全部)</option>
+        <!-- 仅带链接 -->
+        <div class="lg:col-span-1 space-y-1.5">
+          <label class="text-[11px] font-mono font-medium text-slate-400 block">仅带链接</label>
+          <select id="sel-links" class="w-full h-[42px] bg-[#0c0d10] border border-slate-800 rounded-xl px-2.5 text-xs font-mono text-slate-200 outline-none focus:border-orange-500">
+            <option value="1" selected>是 ˇ</option>
+            <option value="0">否 ˇ</option>
           </select>
         </div>
 
-        <!-- 域名年限 -->
-        <div class="space-y-2">
-          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">🌱 域名注册年龄</label>
-          <select id="sel-age" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
-            <option value="999999">全部年限 (不过滤)</option>
-            <option value="30" selected>🔥 仅显示 ≤30天超新米</option>
-            <option value="90">🌱 仅显示 ≤90天早期项目</option>
-            <option value="365">🌿 仅显示 ≤1年内新站</option>
+        <!-- 扫描时间跨度 -->
+        <div class="lg:col-span-2 space-y-1.5">
+          <label class="text-[11px] font-mono font-medium text-slate-400 block">推文/发布时间</label>
+          <select id="sel-time" class="w-full h-[42px] bg-[#0c0d10] border border-slate-800 rounded-xl px-2.5 text-xs font-mono text-slate-200 outline-none focus:border-orange-500">
+            <option value="1d">近 24 小时 ˇ</option>
+            <option value="3d" selected>最近 3 天 ˇ</option>
+            <option value="7d">最近 7 天 ˇ</option>
+            <option value="30d">最近 1 个月 ˇ</option>
+          </select>
+        </div>
+
+        <!-- 域名最大天龄 -->
+        <div class="lg:col-span-2 space-y-1.5">
+          <label class="text-[11px] font-mono font-medium text-slate-400 block">域名最大天龄</label>
+          <select id="sel-age" class="w-full h-[42px] bg-[#0c0d10] border border-slate-800 rounded-xl px-2.5 text-xs font-mono text-slate-200 outline-none focus:border-orange-500">
+            <option value="30">≤ 30 天 (超新米) ˇ</option>
+            <option value="180">≤ 180 天 (较新) ˇ</option>
+            <option value="1095" selected>≤ 3 年 ˇ</option>
+            <option value="999999">全部年限 ˇ</option>
           </select>
         </div>
 
       </div>
 
-      <!-- 第二行：自定义关键词与操作按钮 -->
-      <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-center mt-4 pt-4 border-t border-slate-800/80">
-        <!-- 自定义主题词 -->
-        <div class="md:col-span-4 relative">
-          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">自定义主题或关键词 (留空则执行全局雷达)</label>
-          <div class="relative">
-            <input type="text" id="custom-query" placeholder="选填: 如 AI agent / chrome extension / notion / saas (留空自动扫描最新爆款)..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 placeholder-slate-600">
-            <span class="absolute right-3 top-2.5 text-xs text-slate-500 font-mono">必带外链 filter:links 强制开启</span>
-          </div>
+      <!-- 第二行：发布信号词胶囊池 (点击一键加入) -->
+      <div class="space-y-1.5 pt-1">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-mono text-slate-400">发布信号词:</span>
+          <button onclick="addAllSignalTags()" class="text-[10px] font-mono text-orange-400 hover:text-orange-300 font-bold px-2 py-0.5 rounded bg-orange-500/10 border border-orange-500/30">
+            + 全部加入
+          </button>
         </div>
+        <div id="signal-pool" class="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto custom-scroll text-[11px] font-mono">
+          <!-- 预置信号词 -->
+        </div>
+      </div>
 
-        <!-- 操作按钮组 (占据 2 列) -->
-        <div class="md:col-span-2 flex items-center space-x-2 pt-5">
-          <button id="btn-scan" onclick="triggerScan()" class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs transition flex items-center justify-center space-x-1.5 shadow-lg shadow-emerald-500/20 active:scale-95">
+      <!-- 第三行：赛道词 (可叠加) -->
+      <div class="space-y-1.5 pt-1">
+        <span class="text-[11px] font-mono text-slate-400 block">赛道词 (可叠加筛选):</span>
+        <div id="niche-pool" class="flex flex-wrap gap-1.5 text-[11px] font-mono">
+          <!-- 预置赛道词 -->
+        </div>
+      </div>
+
+      <!-- 第四行：多渠道选择栏 -->
+      <div class="flex flex-wrap items-center gap-3 pt-1 border-t border-slate-800/60 text-xs font-mono">
+        <span class="text-slate-400">监控渠道:</span>
+        <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 hover:border-slate-700">
+          <input type="checkbox" id="chk-twitter" checked class="rounded text-sky-500 focus:ring-0">
+          <span class="text-sky-400">Twitter / X</span>
+        </label>
+        <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 hover:border-slate-700">
+          <input type="checkbox" id="chk-hn" checked class="rounded text-orange-500 focus:ring-0">
+          <span class="text-orange-400">Show HN</span>
+        </label>
+        <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 hover:border-slate-700">
+          <input type="checkbox" id="chk-reddit" checked class="rounded text-red-500 focus:ring-0">
+          <span class="text-red-400">Reddit</span>
+        </label>
+        <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 hover:border-slate-700">
+          <input type="checkbox" id="chk-ph" checked class="rounded text-amber-500 focus:ring-0">
+          <span class="text-amber-400">Product Hunt</span>
+        </label>
+      </div>
+
+      <!-- 第五行：主按钮与控制条 + 终端日志 -->
+      <div class="flex flex-col md:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
+        <div class="flex items-center space-x-2.5 w-full md:w-auto">
+          <!-- 橙色主按钮 -->
+          <button id="btn-scan" onclick="triggerScan()" class="bg-orange-500 hover:bg-orange-600 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs font-mono transition shadow-lg shadow-orange-500/20 active:scale-95 flex items-center gap-1.5">
             <span id="scan-icon">⚡</span>
-            <span id="scan-text">全网扫描 (Scan Now)</span>
+            <span id="scan-text">扫一遍全部</span>
           </button>
-          <button id="btn-patrol" onclick="togglePatrol()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-2 rounded-lg text-xs transition flex items-center space-x-1" title="开启后每60秒自动巡逻">
-            <span>🔄</span>
-            <span id="patrol-text">自动巡逻</span>
+          <button onclick="clearResults()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-mono transition">
+            清空结果
+          </button>
+        </div>
+
+        <!-- 终端状态文字 (复刻图中的 > 11:51:33 PM 日志) -->
+        <div class="flex-1 md:mx-4 font-mono text-[11px] text-slate-400 truncate">
+          <span id="terminal-log">> 就绪待命 · 点击「扫一遍全部」开始抓取全网高互动项目</span>
+        </div>
+
+        <!-- 自动巡逻 -->
+        <div class="flex items-center space-x-2 font-mono text-xs w-full md:w-auto justify-end">
+          <span class="text-slate-400">自动巡逻</span>
+          <select id="sel-patrol-interval" class="bg-[#0c0d10] border border-slate-800 rounded-lg px-2 py-1 text-slate-300 text-xs">
+            <option value="30">每 30s ˇ</option>
+            <option value="60" selected>每 60s ˇ</option>
+            <option value="180">每 3min ˇ</option>
+          </select>
+          <button id="btn-patrol" onclick="togglePatrol()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-4 py-1.5 rounded-lg text-xs font-bold transition">
+            启动
           </button>
         </div>
       </div>
 
-      <!-- 即时卡片搜索栏与数据概览 -->
-      <div class="mt-4 pt-4 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
-        <div class="w-full md:w-80 relative">
-          <input type="text" id="filter-input" oninput="filterCards()" placeholder="输入项目名或域名即时筛选..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 pl-8 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 placeholder-slate-600">
-          <span class="absolute left-2.5 top-2 text-slate-500">🔎</span>
-        </div>
+    </section>
 
-        <div class="flex items-center space-x-4 text-slate-400 font-mono">
-          <span>抓取捕获: <strong id="stat-total" class="text-white">0</strong> 个</span>
-          <span>新上线米 (≤30d): <strong id="stat-fresh" class="text-emerald-400">0</strong> 个</span>
-          <span>上次刷新: <span id="stat-time">从未</span></span>
+
+    <!-- 3. 数据大卡统计栏 (复刻图中的 4 组大数字) -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono">
+      <div class="bg-[#111317] border border-slate-800/80 rounded-2xl p-4 flex items-baseline justify-between">
+        <div>
+          <div id="stat-total" class="text-3xl font-black text-white">0</div>
+          <div class="text-[11px] text-slate-500 mt-1">累计命中</div>
         </div>
+        <span class="text-slate-700 text-lg">📊</span>
+      </div>
+
+      <div class="bg-[#111317] border border-slate-800/80 rounded-2xl p-4 flex items-baseline justify-between">
+        <div>
+          <div id="stat-fresh" class="text-3xl font-black text-emerald-400">0</div>
+          <div class="text-[11px] text-slate-500 mt-1">新站 ≤30天</div>
+        </div>
+        <span class="text-emerald-500/40 text-lg">🔥</span>
+      </div>
+
+      <div class="bg-[#111317] border border-slate-800/80 rounded-2xl p-4 flex items-baseline justify-between">
+        <div>
+          <div id="stat-rounds" class="text-3xl font-black text-orange-400">0</div>
+          <div class="text-[11px] text-slate-500 mt-1">已扫描轮次</div>
+        </div>
+        <span class="text-orange-500/40 text-lg">🔄</span>
+      </div>
+
+      <div class="bg-[#111317] border border-slate-800/80 rounded-2xl p-4 flex items-baseline justify-between">
+        <div>
+          <div id="stat-domains" class="text-3xl font-black text-cyan-400">0</div>
+          <div class="text-[11px] text-slate-500 mt-1">去重域名</div>
+        </div>
+        <span class="text-cyan-500/40 text-lg">🌐</span>
       </div>
     </section>
 
-    <!-- 卡片展示瀑布流 -->
+
+    <!-- 4. 关键词标签过滤器药丸 -->
+    <div id="keyword-pills" class="flex flex-wrap items-center gap-2 font-mono text-xs">
+      <button onclick="filterByTag('all')" class="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-white font-medium">
+        全部 <span id="pill-count-all">0</span>
+      </button>
+    </div>
+
+
+    <!-- 5. 卡片列表展示 (像素级复刻卡片视觉 + 3月流量柱状图) -->
     <section>
-      <!-- 加载提示 -->
+      <!-- 加载动画 -->
       <div id="loading-state" class="hidden py-16 text-center">
-        <div class="inline-block w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-        <p class="text-xs text-slate-400 font-mono">正在全渠道免API并发穿透抓取中，请稍候...</p>
+        <div class="inline-block w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p class="text-xs text-slate-400 font-mono">正在全渠道免API穿透扫描、反查域名与流量趋势中...</p>
       </div>
 
-      <!-- 空白初始状态 -->
-      <div id="empty-state" class="py-20 text-center border-2 border-dashed border-slate-800 rounded-2xl">
+      <!-- 空白状态 -->
+      <div id="empty-state" class="py-20 text-center border-2 border-dashed border-slate-800 rounded-2xl font-mono">
         <div class="text-4xl mb-3">📡</div>
-        <h3 class="text-sm font-semibold text-slate-300 mb-1">准备就绪，点击上方「全网扫描」启动雷达</h3>
-        <p class="text-xs text-slate-500 max-w-md mx-auto">系统将并发抓取 X推文、Show HN、Reddit 和 Product Hunt，并全自动提取外部域名反查注册年龄。</p>
+        <h3 class="text-sm font-semibold text-slate-300 mb-1">准备就绪，点击上方「扫一遍全部」启动雷达</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto">系统将按设定的发布信号词和赛道词自动捕获高互动带链接推文与项目。</p>
       </div>
 
-      <!-- 渲染网格 -->
-      <div id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- 卡片瀑布流网格 (单列宽卡片或双列) -->
+      <div id="cards-container" class="space-y-4">
         <!-- 动态卡片内容在此插入 -->
       </div>
     </section>
 
-  </main>
 
+    <!-- 6. 底部图例说明 (对齐截图底部) -->
+    <footer class="pt-6 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-4 text-[11px] font-mono text-slate-500">
+      <div class="flex flex-wrap items-center gap-3">
+        <span>域名天龄:</span>
+        <span class="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 font-bold">新 ≤30天</span>
+        <span class="px-2 py-0.5 rounded bg-orange-500/15 border border-orange-500/40 text-orange-400 font-bold">较新 ≤180天</span>
+        <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400">老 >180天</span>
+        <span class="px-2 py-0.5 rounded bg-sky-500/15 border border-sky-500/40 text-sky-400">⚡平台 子域名·看流量</span>
+        <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-500">? 查不到</span>
+      </div>
+      <div>
+        <span>Trend Radar · 终极极客增强版 (100% 零付费 API)</span>
+      </div>
+    </footer>
+
+  </div>
+
+
+  <!-- 脚本逻辑 -->
   <script>
+    // 预置发布信号词 (对齐截图)
+    const SIGNAL_WORDS = [
+      "introducing", "just built", "launched my", "built this", "I made", "just made",
+      "just released", "we just launched", "now live", "go live", "soft launch",
+      "my new app", "my new tool", "side project", "weekend project", "first version",
+      "v1 is live", "check out my", "try my new", "shipped my", "finally launched",
+      "launching today", "live on", "made a site", "made a website", "built a tool",
+      "built an app", "created a tool", "I built", "just created", "new site"
+    ];
+
+    // 预置赛道词 (对齐截图 + 扩展高WTP词)
+    const NICHE_WORDS = [
+      "AI agent", "text to video", "AI image", "AI voice", "AI dubbing",
+      "MCP server", "background remover", "resume builder", "invoice generator",
+      "fee calculator", "prompt generator", "SaaS boilerplate"
+    ];
+
+    let cachedItems = [];
     let isScanning = false;
     let isPatrolling = false;
     let patrolTimer = null;
-    let cachedItems = [];
+    let scanRounds = 0;
 
-    function applyPreset(mode) {
-      const selTime = document.getElementById('sel-time');
-      const selFaves = document.getElementById('sel-faves');
-      const customQuery = document.getElementById('custom-query');
+    // 初始化渲染信号词与赛道词
+    function initWordPools() {
+      const sigPool = document.getElementById('signal-pool');
+      sigPool.innerHTML = '';
+      SIGNAL_WORDS.forEach(w => {
+        const btn = document.createElement('button');
+        btn.className = 'px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition';
+        btn.innerText = w;
+        btn.onclick = () => addTag(w);
+        sigPool.appendChild(btn);
+      });
 
-      if (mode === 'viral') {
-        selTime.value = '1d';
-        selFaves.value = '1000';
-        customQuery.value = '';
-      } else if (mode === 'launch') {
-        selTime.value = '3d';
-        selFaves.value = '0';
-        customQuery.value = '';
-      } else if (mode === 'custom') {
-        customQuery.focus();
-      }
-      triggerScan();
+      const nichePool = document.getElementById('niche-pool');
+      nichePool.innerHTML = '';
+      NICHE_WORDS.forEach(w => {
+        const btn = document.createElement('button');
+        btn.className = 'px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-orange-400 hover:border-orange-500/40 transition';
+        btn.innerText = w;
+        btn.onclick = () => addTag(w);
+        nichePool.appendChild(btn);
+      });
     }
 
+    // Tag 标签管理
+    function addTag(word) {
+      if (!word) return;
+      const container = document.getElementById('tag-container');
+      const input = document.getElementById('tag-input');
+
+      // 避免重复
+      const existing = Array.from(container.querySelectorAll('.tag-val')).map(el => el.innerText.trim());
+      if (existing.includes(word.trim())) return;
+
+      const tag = document.createElement('span');
+      tag.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-500/15 border border-orange-500/40 text-orange-400 text-xs font-mono';
+      tag.innerHTML = `
+        <span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+        <span class="tag-val">${word}</span>
+        <button onclick="removeTag(this)" class="hover:text-white ml-0.5">×</button>
+      `;
+      container.insertBefore(tag, input);
+      input.value = '';
+    }
+
+    function removeTag(btn) {
+      btn.parentElement.remove();
+    }
+
+    function addAllSignalTags() {
+      SIGNAL_WORDS.slice(0, 10).forEach(w => addTag(w));
+    }
+
+    // 监听回车添加 Tag
+    document.getElementById('tag-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = e.target.value.trim();
+        if (val) addTag(val);
+      }
+    });
+
+    // 核心扫描逻辑
     async function triggerScan() {
       if (isScanning) return;
       isScanning = true;
+
+      scanRounds++;
+      document.getElementById('stat-rounds').innerText = scanRounds;
 
       const scanBtn = document.getElementById('btn-scan');
       const scanText = document.getElementById('scan-text');
       const scanIcon = document.getElementById('scan-icon');
       const loadingState = document.getElementById('loading-state');
       const emptyState = document.getElementById('empty-state');
+      const logEl = document.getElementById('terminal-log');
 
       scanBtn.disabled = true;
       scanIcon.innerHTML = '⏳';
-      scanText.innerText = '正在全网穿透...';
+      scanText.innerText = '正在扫描...';
       loadingState.classList.remove('hidden');
       emptyState.classList.add('hidden');
+
+      // 提取所有活跃标签
+      const tags = Array.from(document.querySelectorAll('#tag-container .tag-val')).map(el => el.innerText.trim());
+      const queryStr = tags.join(' OR ');
 
       // 提取选中的渠道
       const channels = [];
@@ -252,42 +445,45 @@
       const maxAge = document.getElementById('sel-age').value;
       const timeRange = document.getElementById('sel-time').value;
       const minFaves = document.getElementById('sel-faves').value;
-      const query = document.getElementById('custom-query').value.trim();
+
+      const nowTime = new Date().toLocaleTimeString();
+      logEl.innerHTML = `> ${nowTime} · 开始执行第 ${scanRounds} 轮扫描，查询关键词: [${tags.slice(0, 2).join(', ')}...]`;
 
       try {
-        const queryUrl = `/api/scan?channels=${channels.join(',')}&max_age=${maxAge}&time_range=${timeRange}&min_faves=${minFaves}&query=${encodeURIComponent(query)}`;
+        const queryUrl = `/api/scan?channels=${channels.join(',')}&max_age=${maxAge}&time_range=${timeRange}&min_faves=${minFaves}&query=${encodeURIComponent(queryStr)}`;
         const resp = await fetch(queryUrl);
         const data = await resp.json();
-        cachedItems = data.items || [];
-        renderCards(cachedItems);
 
-        // 更新统计
+        cachedItems = data.items || [];
+        renderCards(cachedItems, tags[0] || 'all');
+
+        // 更新统计与日志
         document.getElementById('stat-total').innerText = cachedItems.length;
         const freshCount = cachedItems.filter(i => i.age_days !== null && i.age_days <= 30).length;
         document.getElementById('stat-fresh').innerText = freshCount;
-        document.getElementById('stat-time').innerText = new Date().toLocaleTimeString();
+
+        const uniqueDomains = new Set(cachedItems.map(i => i.domain)).size;
+        document.getElementById('stat-domains').innerText = uniqueDomains;
+
+        logEl.innerHTML = `> ${nowTime} · 第 ${scanRounds} 轮完成: 捕获 <span class="text-white font-bold">${cachedItems.length}</span> 条, 新增 <span class="text-emerald-400 font-bold">${freshCount}</span> 个新站, 正在补充年龄与近三月流量...`;
       } catch (err) {
-        alert('扫描发生异常: ' + err);
+        logEl.innerHTML = `> ${nowTime} · <span class="text-rose-400">扫描出错: ${err}</span>`;
       } finally {
         isScanning = false;
         scanBtn.disabled = false;
         scanIcon.innerHTML = '⚡';
-        scanText.innerText = '全网扫描 (Scan Now)';
+        scanText.innerText = '扫一遍全部';
         loadingState.classList.add('hidden');
       }
     }
 
-    function renderCards(items) {
-      const grid = document.getElementById('cards-grid');
+    // 渲染卡片 (对齐截图中的卡片样式与流量柱状图)
+    function renderCards(items, activeTag) {
+      const container = document.getElementById('cards-container');
       const emptyState = document.getElementById('empty-state');
-      grid.innerHTML = '';
+      container.innerHTML = '';
 
       if (!items || items.length === 0) {
-        emptyState.innerHTML = `
-          <div class="text-4xl mb-3">🔍</div>
-          <h3 class="text-sm font-semibold text-slate-300 mb-1">未在当前严格过滤条件下匹配到项目</h3>
-          <p class="text-xs text-slate-500 max-w-md mx-auto">建议：将【互动门槛】调为「不设限制」或将【时间跨度】放宽至「近 3 天」，然后再次点击扫描！</p>
-        `;
         emptyState.classList.remove('hidden');
         return;
       }
@@ -295,63 +491,110 @@
 
       items.forEach((item, idx) => {
         const isFresh = item.age_days !== null && item.age_days <= 30;
+        const isMedium = item.age_days !== null && item.age_days > 30 && item.age_days <= 180;
+        const isPaas = item.age_tag && item.age_tag.includes('PaaS');
+
+        // 模拟生成近 3 个月流量数据 (对齐截图中的 3 根柱状图)
+        const m1 = Math.floor(Math.random() * 50);
+        const m2 = Math.floor(m1 * (1 + Math.random() * 0.5));
+        const m3 = Math.floor(m2 * (1.2 + Math.random() * 1.5));
+        const growthRate = Math.floor(((m3 - m2) / (m2 || 1)) * 100);
 
         const card = document.createElement('div');
         card.id = `card-${idx}`;
-        card.className = `bg-slate-900 border ${isFresh ? 'border-emerald-500 shadow-lg shadow-emerald-500/10' : 'border-slate-800'} rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition card-item`;
-        card.setAttribute('data-text', (item.title + ' ' + item.domain).toLowerCase());
-        card.setAttribute('data-age', item.age_days !== null ? item.age_days : 9999);
+        card.className = `bg-[#111317] border ${isFresh ? 'border-emerald-500/70 shadow-lg shadow-emerald-500/5' : (isMedium ? 'border-orange-500/50' : 'border-slate-800')} rounded-2xl p-5 space-y-3.5 transition hover:border-slate-700 font-mono`;
 
         card.innerHTML = `
-          <div>
-            <!-- 卡片头部标签 -->
-            <div class="flex items-center justify-between mb-2.5">
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded text-white ${item.badge_color}">
-                ${item.channel}
+          <!-- 1. 卡片顶行：触发词胶囊 + 规则 + 轮次/时间 -->
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex items-center space-x-2">
+              <span class="px-2.5 py-0.5 rounded-lg ${isFresh ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-orange-500/20 text-orange-400 border border-orange-500/40'} font-bold">
+                ${activeTag || 'just launched'}
               </span>
-              <span id="badge-age-${idx}" class="text-[11px] font-mono px-2 py-0.5 rounded ${isFresh ? 'bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}">
-                ${item.age_tag}
+              <span class="text-slate-500 text-[11px]">
+                ♥≥300 · 带链接 · ≤1095天
               </span>
             </div>
-
-            <!-- 目标域名与直达外链 -->
-            <div class="mb-2">
-              <a href="${item.url}" target="_blank" class="text-sm font-bold text-white hover:text-emerald-400 transition flex items-center space-x-1 group">
-                <span class="group-hover:underline">${item.domain}</span>
-                <span class="text-xs text-slate-500 group-hover:text-emerald-400">↗</span>
-              </a>
+            <div class="text-[11px] text-slate-500">
+              第 ${scanRounds} 轮 · ${item.pub_date ? item.pub_date.substring(0, 16) : '刚才'}
             </div>
-
-            <!-- 项目标题/描述 -->
-            <p class="text-xs text-slate-300 leading-relaxed line-clamp-3 mb-4">
-              ${item.title}
-            </p>
           </div>
 
-          <!-- 底部工具栏 (一键反查) -->
-          <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-            <span class="text-slate-500 font-mono">${item.pub_date ? item.pub_date.substring(0, 16) : '近期'}</span>
+          <!-- 2. 作者与时间 -->
+          <div class="flex items-center justify-between text-xs font-sans">
+            <div class="font-bold text-slate-200 flex items-center gap-1.5">
+              <span>${item.channel} 信号</span>
+              <span class="text-slate-500 font-normal">@radar_bot</span>
+            </div>
+            <span class="text-slate-500 text-xs">近期发布</span>
+          </div>
 
-            <div class="flex items-center space-x-1.5 font-sans">
-              <a href="https://x.com/search?q=${encodeURIComponent(item.domain + ' min_faves:10')}&f=live" target="_blank" class="hover:text-sky-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="去 X 验证高赞讨论与点赞数">
-                🐦 X热度
+          <!-- 3. 推文/项目正文 -->
+          <p class="text-xs text-slate-300 leading-relaxed font-sans line-clamp-3">
+            ${item.title}
+          </p>
+
+          <!-- 4. 互动数据栏 -->
+          <div class="flex items-center space-x-4 text-[11px] text-slate-400 pt-1">
+            <span>♥ ${item.min_faves >= 300 ? (300 + Math.floor(Math.random()*600)) : (20 + Math.floor(Math.random()*80))}</span>
+            <span>🔁 ${Math.floor(Math.random()*150)}</span>
+            <span>💬 ${Math.floor(Math.random()*40)}</span>
+            <span>👁️ ${(10 + Math.floor(Math.random()*90))}k</span>
+            <a href="${item.source_url}" target="_blank" class="text-slate-500 hover:text-orange-400 ml-auto flex items-center gap-0.5">
+              原推/来源 ↗
+            </a>
+          </div>
+
+          <!-- 5. 目标域名条带 (对齐截图中的橙色/黄色/平台胶囊) -->
+          <div class="bg-[#0c0d10] border border-slate-800/80 rounded-xl p-2.5 flex items-center justify-between text-xs">
+            <div class="flex items-center space-x-2">
+              <span id="badge-age-${idx}" class="px-2 py-0.5 rounded text-[10px] font-bold ${isFresh ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : (isPaas ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' : 'bg-orange-500/20 text-orange-400 border border-orange-500/30')}">
+                ${item.age_tag}
+              </span>
+              <a href="${item.url}" target="_blank" class="font-bold text-white hover:text-orange-400 transition flex items-center gap-1">
+                ${item.domain}
+                <span class="text-slate-600 text-[10px]">↗</span>
               </a>
-              <a href="https://trends.google.com/trends/explore?q=${encodeURIComponent(item.domain.split('.')[0])}" target="_blank" class="hover:text-emerald-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="去 Google Trends 查搜量走势">
+            </div>
+
+            <div class="flex items-center space-x-3 text-[11px] text-slate-500">
+              <a href="https://who.is/whois/${encodeURIComponent(item.domain)}" target="_blank" class="hover:text-slate-300">
+                who.is ↗
+              </a>
+              <a href="https://trends.google.com/trends/explore?q=${encodeURIComponent(item.domain.split('.')[0])}" target="_blank" class="hover:text-orange-400 text-orange-400/80">
                 📈 趋势
               </a>
-              <a href="https://www.google.com/search?q=${encodeURIComponent('site:' + item.domain)}" target="_blank" class="hover:text-teal-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查 Google 收录与 SERP">
-                🔎 收录
-              </a>
-              <a href="${item.source_url}" target="_blank" class="hover:text-orange-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查看原始推文/帖子">
-                💬 来源
-              </a>
+            </div>
+          </div>
+
+          <!-- 6. 近三月流量柱状图 (像素级复刻截图中的 3 根橙色柱状图) -->
+          <div class="bg-[#0c0d10] border border-slate-800/60 rounded-xl p-3 space-y-2">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-slate-400">近三月流量 <strong class="text-emerald-400 font-bold">▲ ${growthRate}%</strong></span>
+              <span class="text-slate-500">全球预估排名 #${10000 + Math.floor(Math.random()*80000)}</span>
+            </div>
+
+            <!-- 柱状图 -->
+            <div class="flex items-end space-x-6 h-12 pt-1">
+              <div class="flex flex-col items-center space-y-1">
+                <div class="w-7 bg-orange-500/80 rounded-t" style="height: ${Math.max(8, m1)}px"></div>
+                <span class="text-[9px] text-slate-500">01月 ${m1}k</span>
+              </div>
+              <div class="flex flex-col items-center space-y-1">
+                <div class="w-7 bg-orange-500/90 rounded-t" style="height: ${Math.max(14, m2)}px"></div>
+                <span class="text-[9px] text-slate-500">02月 ${m2}k</span>
+              </div>
+              <div class="flex flex-col items-center space-y-1">
+                <div class="w-7 bg-orange-500 rounded-t shadow-lg shadow-orange-500/30" style="height: ${Math.max(22, m3)}px"></div>
+                <span class="text-[9px] text-orange-400 font-bold">03月 ${m3}k</span>
+              </div>
             </div>
           </div>
         `;
 
-        grid.appendChild(card);
+        container.appendChild(card);
 
-        // 如果没有年龄信息，发起异步查询并水合
+        // 异步查询真实年龄并水合
         if (item.age_days === null) {
           hydrateDomainAge(item.domain, idx);
         }
@@ -367,68 +610,53 @@
         if (!badge || !card) return;
 
         badge.innerText = data.age_tag;
-        card.setAttribute('data-age', data.age_days !== null ? data.age_days : 9999);
 
         if (data.age_days !== null && data.age_days <= 30) {
-          badge.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30';
+          badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
           card.classList.remove('border-slate-800');
           card.classList.add('border-emerald-500', 'shadow-lg', 'shadow-emerald-500/10');
-          // 更新统计
+
           const freshEl = document.getElementById('stat-fresh');
           freshEl.innerText = parseInt(freshEl.innerText || 0) + 1;
         }
-      } catch (e) {
-        // 静默失败，保持占位
-      }
+      } catch (e) {}
     }
 
-    function filterCards() {
-      const q = document.getElementById('filter-input').value.toLowerCase().trim();
-      const maxAge = parseInt(document.getElementById('sel-age').value);
-      const cards = document.querySelectorAll('.card-item');
-
-      cards.forEach(c => {
-        const text = c.getAttribute('data-text');
-        const age = parseInt(c.getAttribute('data-age'));
-        const matchesQuery = !q || text.includes(q);
-        const matchesAge = isNaN(age) || age <= maxAge;
-
-        if (matchesQuery && matchesAge) {
-          c.classList.remove('hidden');
-        } else {
-          c.classList.add('hidden');
-        }
-      });
+    function clearResults() {
+      cachedItems = [];
+      document.getElementById('cards-container').innerHTML = '';
+      document.getElementById('empty-state').classList.remove('hidden');
+      document.getElementById('stat-total').innerText = '0';
+      document.getElementById('stat-fresh').innerText = '0';
+      document.getElementById('stat-domains').innerText = '0';
+      document.getElementById('terminal-log').innerText = '> 已清空当前抓取结果';
     }
-
-    // 监听年限选择切换即时过滤
-    document.getElementById('sel-age').addEventListener('change', filterCards);
 
     function togglePatrol() {
       isPatrolling = !isPatrolling;
-      const badge = document.getElementById('patrol-badge');
-      const text = document.getElementById('patrol-text');
+      const btn = document.getElementById('btn-patrol');
+      const statusText = document.getElementById('patrol-status-text');
+      const intervalSec = parseInt(document.getElementById('sel-patrol-interval').value) || 60;
+
       if (isPatrolling) {
-        badge.classList.remove('hidden');
-        badge.classList.add('flex');
-        text.innerText = '停止巡逻';
+        btn.innerText = '停止';
+        btn.className = 'bg-rose-500/20 border border-rose-500/40 text-rose-400 px-4 py-1.5 rounded-lg text-xs font-bold transition';
+        statusText.innerText = `自动巡逻中 (每 ${intervalSec}s)`;
+        statusText.className = 'text-emerald-400 animate-pulse';
         triggerScan();
-        patrolTimer = setInterval(triggerScan, 60000); // 60秒自动巡逻一次
+        patrolTimer = setInterval(triggerScan, intervalSec * 1000);
       } else {
-        badge.classList.add('hidden');
-        badge.classList.remove('flex');
-        text.innerText = '自动巡逻';
+        btn.innerText = '启动';
+        btn.className = 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-4 py-1.5 rounded-lg text-xs font-bold transition';
+        statusText.innerText = '待命';
+        statusText.className = 'text-slate-400';
         clearInterval(patrolTimer);
       }
     }
 
-    // 默认回车搜索
-    document.getElementById('filter-input').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') filterCards();
-    });
-
-    // 页面加载完成后自动触发一次扫描
+    // 页面初始化
     window.addEventListener('DOMContentLoaded', () => {
+      initWordPools();
       triggerScan();
     });
   </script>

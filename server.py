@@ -124,20 +124,18 @@ def fetch_rss_feed(query):
         pass
     return items
 
-def scan_twitter(time_range="1d", min_faves=0, custom_query=""):
+def scan_twitter(time_range="3d", min_faves=0, custom_query=""):
     """渠道 1: 扫描 X/Twitter (支持时间跨度、高赞爆款模式与自定义词)"""
-    time_filter = f"when:{time_range}" if time_range else "when:1d"
+    time_filter = f"when:{time_range}" if time_range else "when:3d"
 
     if custom_query:
         query_core = custom_query
-    elif min_faves >= 500:
-        query_core = '("just launched" OR "introducing" OR "built this" OR "top tools" OR "viral") "http"'
-    elif min_faves >= 100:
-        query_core = '("just launched" OR "introducing" OR "built this" OR "top tools") "http"'
+    elif min_faves >= 300:
+        query_core = '("just launched" OR "just shipped" OR "introducing" OR "built this") "http"'
     else:
-        query_core = '("just launched" OR "introducing" OR "built this tool")'
+        query_core = '("just launched" OR "introducing" OR "built this tool") "http"'
 
-    query = f'site:x.com {query_core} {time_filter}'
+    query = f'site:x.com ({query_core}) {time_filter}'
     raw_items = fetch_rss_feed(query)
     results = []
     for item in raw_items:
