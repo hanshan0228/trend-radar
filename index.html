@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全渠道新产品趋势雷达 (Multi-Channel Trend Radar)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              500: '#22c55e',
+              600: '#16a34a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- 顶部导航 -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center font-black text-slate-950 text-lg shadow-lg shadow-emerald-500/20">
+          ⚡
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
+            TrendRadar · 全渠道趋势雷达
+            <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono font-medium">100% 免费免API</span>
+          </h1>
+          <p class="text-xs text-slate-400">在 Google Trends 反应前，从极客发源地捕获刚上线的婴儿期新产品</p>
+        </div>
+      </div>
+
+      <!-- 快速状态与作者注脚 -->
+      <div class="flex items-center space-x-4">
+        <div id="patrol-badge" class="hidden items-center space-x-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full text-xs font-mono">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>自动巡逻中...</span>
+        </div>
+        <a href="https://github.com/qiayue/Twitter-Trend-Radar" target="_blank" class="text-xs text-slate-400 hover:text-slate-200 transition">致敬 qiayue 开源灵感</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主体区域 -->
+  <main class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- 控制面板 -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6 shadow-xl">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+
+        <!-- 渠道选择 -->
+        <div class="md:col-span-2 space-y-2">
+          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">监控数据渠道 (支持多选)</label>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition has-[:checked]:border-sky-500 has-[:checked]:bg-sky-500/10 has-[:checked]:text-sky-400">
+              <input type="checkbox" id="chk-twitter" checked class="rounded border-slate-700 text-sky-500 focus:ring-0">
+              <span>Twitter / X</span>
+            </label>
+            <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition has-[:checked]:border-orange-500 has-[:checked]:bg-orange-500/10 has-[:checked]:text-orange-400">
+              <input type="checkbox" id="chk-hn" checked class="rounded border-slate-700 text-orange-500 focus:ring-0">
+              <span>Show HN</span>
+            </label>
+            <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition has-[:checked]:border-red-500 has-[:checked]:bg-red-500/10 has-[:checked]:text-red-400">
+              <input type="checkbox" id="chk-reddit" checked class="rounded border-slate-700 text-red-500 focus:ring-0">
+              <span>Reddit (SideProject)</span>
+            </label>
+            <label class="cursor-pointer flex items-center space-x-1.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg transition has-[:checked]:border-amber-500 has-[:checked]:bg-amber-500/10 has-[:checked]:text-amber-400">
+              <input type="checkbox" id="chk-ph" checked class="rounded border-slate-700 text-amber-500 focus:ring-0">
+              <span>Product Hunt</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 域名年限过滤 -->
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider block">域名注册年龄筛选</label>
+          <select id="sel-age" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+            <option value="999999">全部年限 (不过滤)</option>
+            <option value="30" selected>🔥 仅显示 ≤ 30 天超新米 (极高潜力)</option>
+            <option value="90">🌱 仅显示 ≤ 90 天早期项目</option>
+            <option value="365">🌿 仅显示 ≤ 1 年内新站</option>
+          </select>
+        </div>
+
+        <!-- 操作按钮组 -->
+        <div class="flex items-center space-x-2 pt-5">
+          <button id="btn-scan" onclick="triggerScan()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs transition flex items-center justify-center space-x-1.5 shadow-lg shadow-emerald-500/20 active:scale-95">
+            <span id="scan-icon">⚡</span>
+            <span id="scan-text">全网扫描 (Scan Now)</span>
+          </button>
+          <button id="btn-patrol" onclick="togglePatrol()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-2 rounded-lg text-xs transition flex items-center space-x-1" title="开启后每60秒自动巡逻">
+            <span>🔄</span>
+            <span id="patrol-text">自动巡逻</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- 即时关键词过滤栏与数据概览 -->
+      <div class="mt-4 pt-4 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+        <div class="w-full md:w-80 relative">
+          <input type="text" id="filter-input" oninput="filterCards()" placeholder="输入关键词实时筛选卡片..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 pl-8 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 placeholder-slate-600">
+          <span class="absolute left-2.5 top-2 text-slate-500">🔎</span>
+        </div>
+
+        <div class="flex items-center space-x-4 text-slate-400 font-mono">
+          <span>抓取捕获: <strong id="stat-total" class="text-white">0</strong> 个</span>
+          <span>新上线米 (≤30d): <strong id="stat-fresh" class="text-emerald-400">0</strong> 个</span>
+          <span>上次刷新: <span id="stat-time">从未</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 卡片展示瀑布流 -->
+    <section>
+      <!-- 加载提示 -->
+      <div id="loading-state" class="hidden py-16 text-center">
+        <div class="inline-block w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p class="text-xs text-slate-400 font-mono">正在全渠道免API并发穿透抓取中，请稍候...</p>
+      </div>
+
+      <!-- 空白初始状态 -->
+      <div id="empty-state" class="py-20 text-center border-2 border-dashed border-slate-800 rounded-2xl">
+        <div class="text-4xl mb-3">📡</div>
+        <h3 class="text-sm font-semibold text-slate-300 mb-1">准备就绪，点击上方「全网扫描」启动雷达</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto">系统将并发抓取 X推文、Show HN、Reddit 和 Product Hunt，并全自动提取外部域名反查注册年龄。</p>
+      </div>
+
+      <!-- 渲染网格 -->
+      <div id="cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- 动态卡片内容在此插入 -->
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let isScanning = false;
+    let isPatrolling = false;
+    let patrolTimer = null;
+    let cachedItems = [];
+
+    async function triggerScan() {
+      if (isScanning) return;
+      isScanning = true;
+
+      const scanBtn = document.getElementById('btn-scan');
+      const scanText = document.getElementById('scan-text');
+      const scanIcon = document.getElementById('scan-icon');
+      const loadingState = document.getElementById('loading-state');
+      const emptyState = document.getElementById('empty-state');
+
+      scanBtn.disabled = true;
+      scanIcon.innerHTML = '⏳';
+      scanText.innerText = '正在扫描...';
+      loadingState.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+
+      // 提取选中的渠道
+      const channels = [];
+      if (document.getElementById('chk-twitter').checked) channels.push('twitter');
+      if (document.getElementById('chk-hn').checked) channels.push('hn');
+      if (document.getElementById('chk-reddit').checked) channels.push('reddit');
+      if (document.getElementById('chk-ph').checked) channels.push('producthunt');
+
+      const maxAge = document.getElementById('sel-age').value;
+
+      try {
+        const queryUrl = `/api/scan?channels=${channels.join(',')}&max_age=${maxAge}`;
+        const resp = await fetch(queryUrl);
+        const data = await resp.json();
+        cachedItems = data.items || [];
+        renderCards(cachedItems);
+
+        // 更新统计
+        document.getElementById('stat-total').innerText = cachedItems.length;
+        const freshCount = cachedItems.filter(i => i.age_days !== null && i.age_days <= 30).length;
+        document.getElementById('stat-fresh').innerText = freshCount;
+        document.getElementById('stat-time').innerText = new Date().toLocaleTimeString();
+      } catch (err) {
+        alert('扫描发生异常: ' + err);
+      } finally {
+        isScanning = false;
+        scanBtn.disabled = false;
+        scanIcon.innerHTML = '⚡';
+        scanText.innerText = '全网扫描 (Scan Now)';
+        loadingState.classList.add('hidden');
+      }
+    }
+
+    function renderCards(items) {
+      const grid = document.getElementById('cards-grid');
+      const emptyState = document.getElementById('empty-state');
+      grid.innerHTML = '';
+
+      if (!items || items.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      items.forEach((item, idx) => {
+        const isFresh = item.age_days !== null && item.age_days <= 30;
+
+        const card = document.createElement('div');
+        card.id = `card-${idx}`;
+        card.className = `bg-slate-900 border ${isFresh ? 'border-emerald-500 shadow-lg shadow-emerald-500/10' : 'border-slate-800'} rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition card-item`;
+        card.setAttribute('data-text', (item.title + ' ' + item.domain).toLowerCase());
+        card.setAttribute('data-age', item.age_days !== null ? item.age_days : 9999);
+
+        card.innerHTML = `
+          <div>
+            <!-- 卡片头部标签 -->
+            <div class="flex items-center justify-between mb-2.5">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded text-white ${item.badge_color}">
+                ${item.channel}
+              </span>
+              <span id="badge-age-${idx}" class="text-[11px] font-mono px-2 py-0.5 rounded ${isFresh ? 'bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}">
+                ${item.age_tag}
+              </span>
+            </div>
+
+            <!-- 目标域名与直达外链 -->
+            <div class="mb-2">
+              <a href="${item.url}" target="_blank" class="text-sm font-bold text-white hover:text-emerald-400 transition flex items-center space-x-1 group">
+                <span class="group-hover:underline">${item.domain}</span>
+                <span class="text-xs text-slate-500 group-hover:text-emerald-400">↗</span>
+              </a>
+            </div>
+
+            <!-- 项目标题/描述 -->
+            <p class="text-xs text-slate-300 leading-relaxed line-clamp-3 mb-4">
+              ${item.title}
+            </p>
+          </div>
+
+          <!-- 底部工具栏 (一键反查) -->
+          <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+            <span class="text-slate-500 font-mono">${item.pub_date ? item.pub_date.substring(0, 16) : '近期'}</span>
+
+            <div class="flex items-center space-x-1.5 font-sans">
+              <a href="https://trends.google.com/trends/explore?q=${encodeURIComponent(item.domain.split('.')[0])}" target="_blank" class="hover:text-emerald-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="去 Google Trends 查搜量走势">
+                📈 趋势
+              </a>
+              <a href="https://www.google.com/search?q=${encodeURIComponent('site:' + item.domain)}" target="_blank" class="hover:text-sky-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查 Google 收录与 SERP">
+                🔎 收录
+              </a>
+              <a href="${item.source_url}" target="_blank" class="hover:text-orange-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查看原始推文/帖子">
+                💬 来源
+              </a>
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(card);
+
+        // 如果没有年龄信息，发起异步查询并水合
+        if (item.age_days === null) {
+          hydrateDomainAge(item.domain, idx);
+        }
+      });
+    }
+
+    async function hydrateDomainAge(domain, idx) {
+      try {
+        const resp = await fetch(`/api/domain-age?domain=${encodeURIComponent(domain)}`);
+        const data = await resp.json();
+        const badge = document.getElementById(`badge-age-${idx}`);
+        const card = document.getElementById(`card-${idx}`);
+        if (!badge || !card) return;
+
+        badge.innerText = data.age_tag;
+        card.setAttribute('data-age', data.age_days !== null ? data.age_days : 9999);
+
+        if (data.age_days !== null && data.age_days <= 30) {
+          badge.className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30';
+          card.classList.remove('border-slate-800');
+          card.classList.add('border-emerald-500', 'shadow-lg', 'shadow-emerald-500/10');
+          // 更新统计
+          const freshEl = document.getElementById('stat-fresh');
+          freshEl.innerText = parseInt(freshEl.innerText || 0) + 1;
+        }
+      } catch (e) {
+        // 静默失败，保持占位
+      }
+    }
+
+    function filterCards() {
+      const q = document.getElementById('filter-input').value.toLowerCase().trim();
+      const maxAge = parseInt(document.getElementById('sel-age').value);
+      const cards = document.querySelectorAll('.card-item');
+
+      cards.forEach(c => {
+        const text = c.getAttribute('data-text');
+        const age = parseInt(c.getAttribute('data-age'));
+        const matchesQuery = !q || text.includes(q);
+        const matchesAge = isNaN(age) || age <= maxAge;
+
+        if (matchesQuery && matchesAge) {
+          c.classList.remove('hidden');
+        } else {
+          c.classList.add('hidden');
+        }
+      });
+    }
+
+    // 监听年限选择切换即时过滤
+    document.getElementById('sel-age').addEventListener('change', filterCards);
+      emptyState.classList.add('hidden');
+
+      items.forEach(item => {
+        const isFresh = item.age_days !== null && item.age_days <= 30;
+
+        const card = document.createElement('div');
+        card.className = `bg-slate-900 border ${isFresh ? 'border-emerald-500 shadow-lg shadow-emerald-500/10' : 'border-slate-800'} rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition card-item`;
+        card.setAttribute('data-text', (item.title + ' ' + item.domain).toLowerCase());
+
+        card.innerHTML = `
+          <div>
+            <!-- 卡片头部标签 -->
+            <div class="flex items-center justify-between mb-2.5">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded text-white ${item.badge_color}">
+                ${item.channel}
+              </span>
+              <span class="text-[11px] font-mono px-2 py-0.5 rounded ${isFresh ? 'bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}">
+                ${item.age_tag}
+              </span>
+            </div>
+
+            <!-- 目标域名与直达外链 -->
+            <div class="mb-2">
+              <a href="${item.url}" target="_blank" class="text-sm font-bold text-white hover:text-emerald-400 transition flex items-center space-x-1 group">
+                <span class="group-hover:underline">${item.domain}</span>
+                <span class="text-xs text-slate-500 group-hover:text-emerald-400">↗</span>
+              </a>
+            </div>
+
+            <!-- 项目标题/推文描述 -->
+            <p class="text-xs text-slate-300 leading-relaxed line-clamp-3 mb-4">
+              ${item.title}
+            </p>
+          </div>
+
+          <!-- 底部工具栏 (一键反查) -->
+          <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+            <span class="text-slate-500 font-mono">${item.pub_date ? item.pub_date.substring(0, 16) : '近期'}</span>
+
+            <div class="flex items-center space-x-1.5 font-sans">
+              <a href="https://trends.google.com/trends/explore?q=${encodeURIComponent(item.domain.split('.')[0])}" target="_blank" class="hover:text-emerald-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="去 Google Trends 查搜量走势">
+                📈 趋势
+              </a>
+              <a href="https://www.google.com/search?q=${encodeURIComponent('site:' + item.domain)}" target="_blank" class="hover:text-sky-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查 Google 收录与 SERP">
+                🔎 收录
+              </a>
+              <a href="${item.source_url}" target="_blank" class="hover:text-orange-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 transition" title="查看原始推文/帖子">
+                💬 来源
+              </a>
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+    }
+
+    function filterCards() {
+      const q = document.getElementById('filter-input').value.toLowerCase().trim();
+      const cards = document.querySelectorAll('.card-item');
+      cards.forEach(c => {
+        const text = c.getAttribute('data-text');
+        if (!q || text.includes(q)) {
+          c.classList.remove('hidden');
+        } else {
+          c.classList.add('hidden');
+        }
+      });
+    }
+
+    function togglePatrol() {
+      isPatrolling = !isPatrolling;
+      const badge = document.getElementById('patrol-badge');
+      const text = document.getElementById('patrol-text');
+      if (isPatrolling) {
+        badge.classList.remove('hidden');
+        badge.classList.add('flex');
+        text.innerText = '停止巡逻';
+        triggerScan();
+        patrolTimer = setInterval(triggerScan, 60000); // 60秒自动巡逻一次
+      } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('flex');
+        text.innerText = '自动巡逻';
+        clearInterval(patrolTimer);
+      }
+    }
+
+    // 默认回车搜索
+    document.getElementById('filter-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') filterCards();
+    });
+  </script>
+</body>
+</html>
